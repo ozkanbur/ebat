@@ -51,13 +51,23 @@
             background: white; padding: 40px; border-radius: 16px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center;
             border: 2px dashed var(--accent); max-width: 400px; width: 90%;
+            display: flex; flex-direction: column; align-items: center;
         }
         .btn-upload {
             background: var(--accent); color: white; padding: 12px 24px;
             border-radius: 8px; font-weight: 600; cursor: pointer;
-            margin-top: 15px; display: inline-block; transition: 0.2s;
+            margin-top: 15px; display: inline-block; transition: 0.2s; width: 100%;
         }
         .btn-upload:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3); }
+
+        /* Yeni Kurtarma Butonu */
+        #btn-restore {
+            background: #fff; border: 2px solid var(--success); color: var(--success);
+            padding: 12px 24px; border-radius: 8px; font-weight: 700; cursor: pointer;
+            margin-top: 10px; width: 100%; display: none; /* Varsayılan gizli */
+            align-items: center; justify-content: center; gap: 8px;
+        }
+        #btn-restore:hover { background: #f0fdf4; }
 
         /* --- DASHBOARD --- */
         #dashboard {
@@ -176,6 +186,10 @@
                 Türk Mühendisliğinin Dijital Gücü
             </p>
 
+            <button id="btn-restore" onclick="restoreSession()">
+                ⏮️ Önceki Çalışmaya Devam Et
+            </button>
+
             <label class="btn-upload">
                 📂 Excel Dosyası Seç
                 <input type="file" id="file-input" hidden accept=".xlsx, .xls" onchange="handleFileUpload(event)">
@@ -237,6 +251,11 @@
         let initialTotalQty = 0;
         let initialTotalVol = 0;
 
+        // Sayfa yüklendiğinde eski kayıt var mı bak
+        window.addEventListener('DOMContentLoaded', () => {
+            checkPreviousSession();
+        });
+
         // --- 1. DOSYA OKUMA ---
         function handleFileUpload(e) {
             const file = e.target.files[0];
@@ -255,6 +274,8 @@
                         inventory = result.data;
                         calculateInitials();
                         initApp();
+                        // Dosya yüklenince hemen kaydet
+                        saveSession();
                     } else {
                         showError(result.message);
                     }
@@ -268,10 +289,10 @@
         // --- 2. YENİ İŞLEM (RESET) FONKSİYONU ---
         function resetApp() {
             if(inventory.some(i => i.truckQty > 0)) {
-                if(!confirm("Kamyona yüklenen veriler var. Kaydetmeden çıkmak istiyor musunuz?")) return;
+                if(!confirm("Kamyona yüklenen veriler var. Kaydetmeden çıkmak istiyor musunuz?\n\n(Çıksanız bile 'Önceki Çalışmaya Devam Et' diyerek geri gelebilirsiniz.)")) return;
             }
             
-            // Değişkenleri Sıfırla
+            // Sadece RAM'deki veriyi temizle, LocalStorage kalsın
             inventory = [];
             rawFileBuffer = null;
             initialTotalQty = 0;
@@ -287,6 +308,79 @@
             document.getElementById('dashboard').style.display = 'none';
             document.getElementById('footer').style.display = 'none';
             document.getElementById('upload-overlay').style.display = 'flex';
+            
+            // Ana ekrana dönünce kurtarma butonunu kontrol et
+            checkPreviousSession();
+        }
+
+        // --- OTOMATİK KAYIT SİSTEMİ ---
+        function saveSession() {
+            try {
+                if(!rawFileBuffer || inventory.length === 0) return;
+                
+                // ArrayBuffer'ı string'e çevir
+                const base64File = arrayBufferToBase64(rawFileBuffer);
+                
+                localStorage.setItem('tsp_file', base64File);
+                localStorage.setItem('tsp_data', JSON.stringify(inventory));
+                localStorage.setItem('tsp_date', new Date().toISOString());
+            } catch (e) {
+                console.log("Kayıt alanı doldu veya hata: ", e);
+            }
+        }
+
+        function checkPreviousSession() {
+            const savedData = localStorage.getItem('tsp_data');
+            const savedFile = localStorage.getItem('tsp_file');
+            
+            const btn = document.getElementById('btn-restore');
+            if(savedData && savedFile) {
+                btn.style.display = 'flex';
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+
+        function restoreSession() {
+            try {
+                const savedData = localStorage.getItem('tsp_data');
+                const savedFile = localStorage.getItem('tsp_file');
+
+                if(!savedData || !savedFile) return;
+
+                // Verileri geri yükle
+                rawFileBuffer = base64ToArrayBuffer(savedFile);
+                inventory = JSON.parse(savedData);
+
+                calculateInitials();
+                initApp();
+            } catch (e) {
+                alert("Kurtarma başarısız oldu. Dosya yapısı bozulmuş olabilir.");
+                localStorage.removeItem('tsp_data');
+                localStorage.removeItem('tsp_file');
+                checkPreviousSession();
+            }
+        }
+
+        // Yardımcı Dönüştürücüler
+        function arrayBufferToBase64(buffer) {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            const len = bytes.byteLength;
+            for (let i = 0; i < len; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binary_string = window.atob(base64);
+            const len = binary_string.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binary_string.charCodeAt(i);
+            }
+            return bytes.buffer;
         }
 
         // --- 3. VERİ ÇÖZÜMLEME ---
@@ -445,6 +539,9 @@
             }
             updateCellUI(item);
             updateDashboardDynamic();
+            
+            // HER DEĞİŞİKLİKTE KAYDET
+            saveSession();
         }
 
         function updateCellUI(item) {
@@ -479,7 +576,7 @@
             document.getElementById('lbl-remain-m3').innerText = remainVol.toFixed(3);
         }
 
-        // --- 7. EXPORT (GÜNCELLENDİ) ---
+        // --- 7. EXPORT ---
         async function exportDataSafe() {
             if(!inventory.some(i => i.truckQty > 0)) {
                 alert("Kamyon boş! İşlem yapmadınız."); return;
@@ -512,7 +609,6 @@
             const workbook = await XlsxPopulate.fromDataAsync(rawFileBuffer);
             const sheet = workbook.sheet(0); 
 
-            // Hangi satırlarda veri olduğunu takip etmek için küme
             const activeRows = new Set();
 
             inventory.forEach(item => {
@@ -520,46 +616,34 @@
                 const unitVol = item.totalVol / item.totalQty; 
                 const targetVol = targetQty * unitVol; 
 
-                // Adresten satır numarasını bul (Örn: "C9" -> 9)
                 const rowNum = parseInt(item.qtyAddr.match(/\d+/)[0]);
 
                 if(targetQty > 0) {
-                    // Veri varsa yaz
                     sheet.cell(item.qtyAddr).value(targetQty);
-
                     const volCell = sheet.cell(item.volAddr);
                     volCell.value(targetVol);
                     volCell.style("numberFormat", "0.000");
-
-                    // Bu satırda veri olduğunu işaretle
                     activeRows.add(rowNum);
                 } else {
-                    // İSTEK 1: Veri sıfırsa hücreyi boşalt (görünmesin)
                     sheet.cell(item.qtyAddr).value(null);
                     sheet.cell(item.volAddr).value(null);
                 }
             });
 
-            // İSTEK 2: T9-T97 arası toplam 0 ise satırı komple gizle
-            // Mantık: Eğer 'activeRows' içinde o satır yoksa, o satıra hiç veri girilmemiştir (yani 0'dır).
             for (let r = 9; r <= 97; r++) {
                 if(!activeRows.has(r)) {
                     sheet.row(r).hidden(true);
                 } else {
-                    sheet.row(r).hidden(false); // Eğer şablonda gizliyse aç
+                    sheet.row(r).hidden(false); 
                 }
-                
-                // T sütunu formatı
                 sheet.cell(`T${r}`).style("numberFormat", "0.000");
             }
 
-            // Diğer özel hücre formatları
             const specialCells = ["D98", "F98", "H98", "J98", "L98", "N98", "P98", "D102"];
             specialCells.forEach(addr => {
                 sheet.cell(addr).style("numberFormat", "0.000");
             });
 
-            // İSTEK 3: Y5 hücresi 3 basamaklı ondalık olsun
             sheet.cell("Y5").style("numberFormat", "0.000");
 
             const blob = await workbook.outputAsync();
