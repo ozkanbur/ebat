@@ -639,7 +639,8 @@
                 sheet.cell(`T${r}`).style("numberFormat", "0.000");
             }
 
-            const specialCells = ["D98", "F98", "H98", "J98", "L98", "N98", "P98", "D102"];
+            // T98 BURAYA EKLENDİ
+            const specialCells = ["D98", "F98", "H98", "J98", "L98", "N98", "P98", "T98", "D102"];
             specialCells.forEach(addr => {
                 sheet.cell(addr).style("numberFormat", "0.000");
             });
