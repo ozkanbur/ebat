@@ -32,14 +32,12 @@
         
         body { 
             background: var(--bg); 
-            /* Mobil tarayıcılar için kritik düzeltme: dvh */
             height: 100vh;
             height: 100dvh; 
             display: flex; 
             flex-direction: column;
             overflow: hidden; 
             padding-top: env(safe-area-inset-top);
-            /* Footer padding'i aşağıda footer'ın kendisine verildi */
         }
 
         /* --- GİRİŞ EKRANI --- */
@@ -74,7 +72,7 @@
             gap: 5px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             position: relative;
-            z-index: 50; /* Tablonun üstünde kalsın */
+            z-index: 50; 
         }
 
         .btn-reset {
@@ -106,10 +104,9 @@
             position: relative; 
             padding: 0; 
             background: #e2e8f0;
-            /* Mobilde kaydırma deneyimi için */
             -webkit-overflow-scrolling: touch;
         }
-        table { border-collapse: separate; border-spacing: 0; width: 100%; background: white; padding-bottom: 20px; } /* En altta biraz boşluk */
+        table { border-collapse: separate; border-spacing: 0; width: 100%; background: white; padding-bottom: 20px; }
         th, td { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 8px; text-align: center; vertical-align: middle; background: white; }
 
         /* Sticky Headers */
@@ -137,7 +134,7 @@
         td.empty-data { background: #f8fafc; color: #cbd5e1; font-size: 0.8rem; }
         td.active-shipment { background: #f0fdf4; }
 
-        /* --- FOOTER (DÜZELTİLDİ) --- */
+        /* --- FOOTER --- */
         #footer {
             background: white; 
             border-top: 1px solid var(--border); 
@@ -146,7 +143,6 @@
             justify-content: space-between;
             align-items: center; 
             flex-shrink: 0; 
-            /* Mobilde alt bar sorununu çözen kısım */
             height: auto;
             min-height: 70px;
             padding-bottom: max(10px, env(safe-area-inset-bottom));
@@ -483,7 +479,7 @@
             document.getElementById('lbl-remain-m3').innerText = remainVol.toFixed(3);
         }
 
-        // --- 7. EXPORT ---
+        // --- 7. EXPORT (GÜNCELLENDİ) ---
         async function exportDataSafe() {
             if(!inventory.some(i => i.truckQty > 0)) {
                 alert("Kamyon boş! İşlem yapmadınız."); return;
@@ -516,30 +512,55 @@
             const workbook = await XlsxPopulate.fromDataAsync(rawFileBuffer);
             const sheet = workbook.sheet(0); 
 
+            // Hangi satırlarda veri olduğunu takip etmek için küme
+            const activeRows = new Set();
+
             inventory.forEach(item => {
                 const targetQty = (type === 'truck') ? item.truckQty : item.currentQty;
                 const unitVol = item.totalVol / item.totalQty; 
                 const targetVol = targetQty * unitVol; 
 
-                // Adet
-                sheet.cell(item.qtyAddr).value(targetQty);
+                // Adresten satır numarasını bul (Örn: "C9" -> 9)
+                const rowNum = parseInt(item.qtyAddr.match(/\d+/)[0]);
 
-                // Hacim (3 hane)
-                const volCell = sheet.cell(item.volAddr);
-                volCell.value(targetVol);
-                volCell.style("numberFormat", "0.000"); 
+                if(targetQty > 0) {
+                    // Veri varsa yaz
+                    sheet.cell(item.qtyAddr).value(targetQty);
+
+                    const volCell = sheet.cell(item.volAddr);
+                    volCell.value(targetVol);
+                    volCell.style("numberFormat", "0.000");
+
+                    // Bu satırda veri olduğunu işaretle
+                    activeRows.add(rowNum);
+                } else {
+                    // İSTEK 1: Veri sıfırsa hücreyi boşalt (görünmesin)
+                    sheet.cell(item.qtyAddr).value(null);
+                    sheet.cell(item.volAddr).value(null);
+                }
             });
 
-            // Özel Yan Toplamlar (T Sütunu)
-            for (let r = 9; r <= 98; r++) {
+            // İSTEK 2: T9-T97 arası toplam 0 ise satırı komple gizle
+            // Mantık: Eğer 'activeRows' içinde o satır yoksa, o satıra hiç veri girilmemiştir (yani 0'dır).
+            for (let r = 9; r <= 97; r++) {
+                if(!activeRows.has(r)) {
+                    sheet.row(r).hidden(true);
+                } else {
+                    sheet.row(r).hidden(false); // Eğer şablonda gizliyse aç
+                }
+                
+                // T sütunu formatı
                 sheet.cell(`T${r}`).style("numberFormat", "0.000");
             }
 
-            // Özel Alt Hücreler
+            // Diğer özel hücre formatları
             const specialCells = ["D98", "F98", "H98", "J98", "L98", "N98", "P98", "D102"];
             specialCells.forEach(addr => {
                 sheet.cell(addr).style("numberFormat", "0.000");
             });
+
+            // İSTEK 3: Y5 hücresi 3 basamaklı ondalık olsun
+            sheet.cell("Y5").style("numberFormat", "0.000");
 
             const blob = await workbook.outputAsync();
             const url = window.URL.createObjectURL(blob);
