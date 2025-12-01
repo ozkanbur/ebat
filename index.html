@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1e293b">
+    <title>Tomruk Stok Pro</title>
+
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' style='background-color: white;'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
+    
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-populate/browser/xlsx-populate.min.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #1e293b;
+            --accent: #2563eb; 
+            --accent-light: #eff6ff;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --border: #cbd5e1;
+            --bg: #f1f5f9;
+            --header-bg: #f8fafc;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        
+        body { 
+            background: var(--bg); 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+            overflow: hidden; 
+            /* iOS güvenli alan ayarı */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        /* --- GİRİŞ EKRANI --- */
+        #upload-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95);
+            z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .upload-box {
+            background: white; padding: 40px; border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center;
+            border: 2px dashed var(--accent); max-width: 400px; width: 90%;
+        }
+        .btn-upload {
+            background: var(--accent); color: white; padding: 12px 24px;
+            border-radius: 8px; font-weight: 600; cursor: pointer;
+            margin-top: 15px; display: inline-block; transition: 0.2s;
+        }
+        .btn-upload:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3); }
+
+        /* --- DASHBOARD --- */
+        #dashboard {
+            background: white;
+            border-bottom: 1px solid var(--border);
+            padding: 5px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 75px;
+            flex-shrink: 0;
+            gap: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        /* Yeni İşlem Butonu (Footer'a taşındığı için stili güncellendi) */
+        .btn-reset {
+            /* Absolute pozisyon kaldırıldı */
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1px solid var(--border);
+            border-radius: 8px; /* Footer'a uyum için biraz büyütüldü */
+            font-size: 0.85rem;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-reset:hover { background: #e2e8f0; color: var(--danger); }
+
+        .stat-group { display: flex; gap: 10px; width: 100%; justify-content: space-around; margin-top: 10px; }
+        .stat-item { display: flex; flex-direction: column; align-items: center; min-width: 80px; }
+        .stat-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: #64748b; margin-bottom: 2px; }
+        .stat-values { font-family: 'Roboto Mono', monospace; font-size: 0.9rem; font-weight: 600; color: var(--primary); display: flex; gap: 4px; align-items: center; }
+        .val-unit { font-size: 0.7rem; color: #94a3b8; font-weight: 500; }
+        .divider { width: 1px; height: 10px; background: #cbd5e1; }
+        
+        .txt-success { color: var(--success); }
+        .txt-accent { color: var(--accent); }
+
+        /* --- TABLO ALANI --- */
+        #table-container {
+            flex: 1; overflow: auto; position: relative; padding: 0; background: #e2e8f0;
+        }
+        table { border-collapse: separate; border-spacing: 0; width: 100%; background: white; }
+        th, td { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 8px; text-align: center; vertical-align: middle; background: white; }
+
+        /* Sticky Headers */
+        thead th { position: sticky; top: 0; z-index: 10; background: var(--header-bg); color: var(--primary); font-weight: 700; height: 40px; box-shadow: 0 1px 0 var(--border); }
+        tbody th { position: sticky; left: 0; z-index: 20; background: var(--header-bg); color: var(--primary); font-weight: 700; min-width: 60px; box-shadow: 1px 0 0 var(--border); }
+        thead th:first-child { position: sticky; left: 0; top: 0; z-index: 30; background: var(--primary); color: white; border-right: 1px solid #334155; border-bottom: 1px solid #334155; }
+
+        /* Hücre İçeriği */
+        .cell-controls { display: flex; align-items: center; justify-content: center; gap: 4px; }
+        .btn-ctrl { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: 0.1s; user-select: none; font-size: 1.2rem; } /* Mobilde daha kolay basılsın diye büyüttüm */
+        .btn-ctrl:active { background: #e2e8f0; transform: scale(0.95); }
+        .btn-minus { color: var(--danger); }
+        .btn-plus { color: var(--success); }
+        .btn-ctrl:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .cell-info { display: flex; flex-direction: column; min-width: 70px; }
+        .qty-text { font-family: 'Roboto Mono', monospace; font-size: 0.9rem; font-weight: 600; }
+        .qty-shipped { color: var(--success); }
+        .qty-slash { color: #cbd5e1; font-weight: 400; font-size: 0.8rem; }
+        .qty-total { color: #94a3b8; font-size: 0.8rem; }
+        .vol-text { font-size: 0.65rem; color: #94a3b8; margin-top: 2px; }
+        .active-row .vol-text { color: var(--success); font-weight: 700; }
+
+        td.has-data { background: #ffffff; }
+        td.empty-data { background: #f8fafc; color: #cbd5e1; font-size: 0.8rem; }
+        td.active-shipment { background: #f0fdf4; }
+
+        /* --- FOOTER --- */
+        #footer {
+            background: white; border-top: 1px solid var(--border); padding: 10px 20px;
+            display: flex; 
+            justify-content: space-between; /* İki butonu uçlara yaslamak için değiştirildi */
+            align-items: center; flex-shrink: 0; height: 70px; 
+        }
+        .btn-finish {
+            background: var(--primary); color: white; padding: 12px 30px; border-radius: 8px; border: none;
+            font-weight: 600; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-size: 1rem;
+        }
+        .btn-finish:hover { background: #0f172a; }
+
+        /* Loading Spinner */
+        #loading-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7);
+            z-index: 10000; display: none; align-items: center; justify-content: center; color: white; font-weight: 600; flex-direction: column; gap: 15px;
+        }
+
+        .error-msg { color: var(--danger); font-size: 0.9rem; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="upload-overlay">
+        <div class="upload-box">
+            <div style="font-size: 3rem; margin-bottom: 10px;">🌲</div>
+            <h2 style="color: var(--primary); margin-bottom: 10px;">Tomruk Stok Pro</h2>
+            
+            <p style="color: #64748b; font-size: 0.9rem; line-height: 1.5;">
+                <strong>Özkan KANBUR</strong><br>
+                Orman Endüstri Mühendisi<br>
+                Türk Mühendisliğinin Dijital Gücü
+            </p>
+
+            <label class="btn-upload">
+                📂 Excel Dosyası Seç
+                <input type="file" id="file-input" hidden accept=".xlsx, .xls" onchange="handleFileUpload(event)">
+            </label>
+            <div id="error-box" class="error-msg"></div>
+        </div>
+    </div>
+
+    <div id="loading-overlay">
+        <div>⏳</div>
+        <div>Excel Oluşturuluyor...</div>
+    </div>
+
+    <div id="dashboard" style="display: none;">
+        <div class="stat-group">
+            <div class="stat-item">
+                <div class="stat-title">TOPLAM</div>
+                <div class="stat-values">
+                    <span id="lbl-total-qty">0</span> <span class="val-unit">Ad</span>
+                    <div class="divider"></div>
+                    <span id="lbl-total-m3">0.000</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-title txt-success">GİDEN</div>
+                <div class="stat-values txt-success">
+                    <span id="lbl-truck-qty">0</span> <span class="val-unit">Ad</span>
+                    <div class="divider"></div>
+                    <span id="lbl-truck-m3">0.000</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-title txt-accent">KALAN</div>
+                <div class="stat-values txt-accent">
+                    <span id="lbl-remain-qty">0</span> <span class="val-unit">Ad</span>
+                    <div class="divider"></div>
+                    <span id="lbl-remain-m3">0.000</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="table-container">
+        <table id="matrix-table">
+            <thead></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div id="footer" style="display: none;">
+        <button class="btn-reset" onclick="resetApp()">↺ Yeni Dosya</button>
+
+        <button class="btn-finish" onclick="exportDataSafe()">💾 Nakledilecek Bilgileri Kaydet</button>
+    </div>
+
+    <script>
+        let rawFileBuffer = null; 
+        let inventory = [];
+        let initialTotalQty = 0;
+        let initialTotalVol = 0;
+
+        // --- 1. DOSYA OKUMA ---
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    rawFileBuffer = e.target.result; 
+                    const data = new Uint8Array(rawFileBuffer);
+                    const wb = XLSX.read(data, {type: 'array'});
+                    const sheet = wb.Sheets[wb.SheetNames[0]];
+                    
+                    const result = parseExcelSmart(sheet);
+                    if(result.success) {
+                        inventory = result.data;
+                        calculateInitials();
+                        initApp();
+                    } else {
+                        showError(result.message);
+                    }
+                } catch (err) {
+                    showError(err.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // --- 2. YENİ İŞLEM (RESET) FONKSİYONU ---
+        function resetApp() {
+            if(inventory.some(i => i.truckQty > 0)) {
+                if(!confirm("Kamyona yüklenen veriler var. Kaydetmeden çıkmak istiyor musunuz?")) return;
+            }
+            
+            // Değişkenleri Sıfırla
+            inventory = [];
+            rawFileBuffer = null;
+            initialTotalQty = 0;
+            initialTotalVol = 0;
+
+            // UI Temizle
+            document.querySelector('#matrix-table thead').innerHTML = '';
+            document.querySelector('#matrix-table tbody').innerHTML = '';
+            document.getElementById('file-input').value = ''; // Inputu temizle
+            document.getElementById('error-box').style.display = 'none';
+
+            // Ekranları Değiştir
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('footer').style.display = 'none';
+            document.getElementById('upload-overlay').style.display = 'flex';
+        }
+
+        // --- 3. VERİ ÇÖZÜMLEME ---
+        function parseExcelSmart(sheet) {
+            const data = [];
+            if(!sheet['!ref']) return {success:false, message:"Dosya boş."};
+            const range = XLSX.utils.decode_range(sheet['!ref']);
+            
+            // ADET Satırı
+            let adetRow = -1;
+            for(let r=0; r<=Math.min(30, range.e.r); r++) {
+                let cnt = 0;
+                for(let c=0; c<=range.e.c; c++) {
+                    const cell = sheet[XLSX.utils.encode_cell({r,c})];
+                    if(cell && String(cell.v).toUpperCase().includes('ADET')) cnt++;
+                }
+                if(cnt > 1) { adetRow = r; break; }
+            }
+            if(adetRow === -1) return {success:false, message: "'ADET' satırı bulunamadı."};
+
+            // Boylar
+            const headerRow = adetRow - 1;
+            const colToLength = {};
+            for(let c=0; c<=range.e.c; c++) {
+                const cell = sheet[XLSX.utils.encode_cell({r: adetRow, c})];
+                if(cell && String(cell.v).toUpperCase().includes('ADET')) {
+                    const lenCell = sheet[XLSX.utils.encode_cell({r: headerRow, c})];
+                    if(lenCell && lenCell.v) colToLength[c] = lenCell.v;
+                }
+            }
+
+            // Çap Sütunu
+            let diameterCol = 0; 
+            let maxSeq = 0;
+            for(let c=0; c<=3; c++) {
+                let seq = 0;
+                for(let r=adetRow+1; r<=Math.min(adetRow+10, range.e.r); r++) {
+                    const cell = sheet[XLSX.utils.encode_cell({r,c})];
+                    if(cell && !isNaN(cell.v) && cell.v > 5) seq++;
+                }
+                if(seq > maxSeq) { maxSeq = seq; diameterCol = c; }
+            }
+
+            // Veri Oku
+            for(let r=adetRow+1; r<=range.e.r; r++) {
+                const diaCell = sheet[XLSX.utils.encode_cell({r, c:diameterCol})];
+                if(diaCell && !isNaN(diaCell.v)) {
+                    const diameter = diaCell.v;
+                    for(let cStr in colToLength) {
+                        const c = parseInt(cStr);
+                        const length = colToLength[c];
+                        const qtyAddr = XLSX.utils.encode_cell({r,c});
+                        const volAddr = XLSX.utils.encode_cell({r,c:c+1});
+
+                        const qtyCell = sheet[qtyAddr];
+                        const volCell = sheet[volAddr];
+
+                        if(qtyCell && qtyCell.v > 0) {
+                            let rawVol = (volCell && !isNaN(volCell.v)) ? parseFloat(volCell.v) : 0;
+                            let m3Vol = rawVol / 1000;
+
+                            data.push({
+                                id: qtyAddr,
+                                diameter: diameter,
+                                length: length,
+                                totalQty: parseInt(qtyCell.v),
+                                currentQty: parseInt(qtyCell.v),
+                                truckQty: 0,
+                                totalVol: m3Vol,
+                                qtyAddr: qtyAddr,
+                                volAddr: volAddr
+                            });
+                        }
+                    }
+                }
+            }
+            if(data.length === 0) return {success:false, message:"Veri bulunamadı."};
+            return {success:true, data};
+        }
+
+        // --- 4. UI BAŞLATMA ---
+        function calculateInitials() {
+            initialTotalQty = inventory.reduce((sum, item) => sum + item.totalQty, 0);
+            initialTotalVol = inventory.reduce((sum, item) => sum + item.totalVol, 0);
+            document.getElementById('lbl-total-qty').innerText = initialTotalQty;
+            document.getElementById('lbl-total-m3').innerText = initialTotalVol.toFixed(3);
+        }
+
+        function initApp() {
+            document.getElementById('upload-overlay').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'flex';
+            document.getElementById('footer').style.display = 'flex';
+            renderTable();
+            updateDashboardDynamic();
+        }
+
+        // --- 5. TABLO RENDER ---
+        function renderTable() {
+            const thead = document.querySelector('#matrix-table thead');
+            const tbody = document.querySelector('#matrix-table tbody');
+
+            const lengths = [...new Set(inventory.map(i => i.length))].sort((a,b) => parseFloat(a) - parseFloat(b));
+            const diameters = [...new Set(inventory.map(i => i.diameter))].sort((a,b) => a - b);
+
+            let headHTML = '<tr><th>ÇAP \\ BOY</th>';
+            lengths.forEach(l => headHTML += `<th>${l}</th>`);
+            headHTML += '</tr>';
+            thead.innerHTML = headHTML;
+
+            let bodyHTML = '';
+            diameters.forEach(dia => {
+                const itemsInRow = inventory.filter(i => i.diameter === dia);
+                if(itemsInRow.length === 0) return;
+
+                let rowHTML = `<tr><th>${dia}</th>`;
+                lengths.forEach(len => {
+                    const item = itemsInRow.find(i => i.length === len);
+                    if(item) {
+                        rowHTML += `
+                            <td id="td-${item.id}" class="has-data">
+                                <div class="cell-controls">
+                                    <button class="btn-ctrl btn-minus" onclick="changeQty('${item.id}', -1)" disabled>−</button>
+                                    <div class="cell-info">
+                                        <div class="qty-text">
+                                            <span class="qty-shipped">0</span><span class="qty-slash">/</span><span class="qty-total">${item.totalQty}</span>
+                                        </div>
+                                        <div class="vol-text">0.000 m³</div>
+                                    </div>
+                                    <button class="btn-ctrl btn-plus" onclick="changeQty('${item.id}', 1)">+</button>
+                                </div>
+                            </td>
+                        `;
+                    } else {
+                        rowHTML += `<td class="empty-data">-</td>`;
+                    }
+                });
+                rowHTML += '</tr>';
+                bodyHTML += rowHTML;
+            });
+            tbody.innerHTML = bodyHTML;
+        }
+
+        // --- 6. ETKİLEŞİM ---
+        function changeQty(id, delta) {
+            const item = inventory.find(i => i.id === id);
+            if(!item) return;
+
+            if(delta === 1 && item.currentQty > 0) {
+                item.currentQty--;
+                item.truckQty++;
+            } else if (delta === -1 && item.truckQty > 0) {
+                item.currentQty++;
+                item.truckQty--;
+            } else {
+                return;
+            }
+            updateCellUI(item);
+            updateDashboardDynamic();
+        }
+
+        function updateCellUI(item) {
+            const td = document.getElementById(`td-${item.id}`);
+            const unitVol = item.totalVol / item.totalQty;
+            const currentTruckVol = item.truckQty * unitVol;
+
+            td.querySelector('.btn-minus').disabled = (item.truckQty === 0);
+            td.querySelector('.btn-plus').disabled = (item.currentQty === 0);
+            td.querySelector('.qty-shipped').innerText = item.truckQty;
+            td.querySelector('.vol-text').innerText = currentTruckVol.toFixed(3) + ' m³';
+
+            if(item.truckQty > 0) td.classList.add('active-shipment');
+            else td.classList.remove('active-shipment');
+        }
+
+        function updateDashboardDynamic() {
+            let truckQty = 0, truckVol = 0;
+            let remainQty = 0, remainVol = 0;
+
+            inventory.forEach(i => {
+                const unitVol = i.totalVol / i.totalQty;
+                truckQty += i.truckQty;
+                truckVol += (i.truckQty * unitVol);
+                remainQty += i.currentQty;
+                remainVol += (i.currentQty * unitVol);
+            });
+
+            document.getElementById('lbl-truck-qty').innerText = truckQty;
+            document.getElementById('lbl-truck-m3').innerText = truckVol.toFixed(3);
+            document.getElementById('lbl-remain-qty').innerText = remainQty;
+            document.getElementById('lbl-remain-m3').innerText = remainVol.toFixed(3);
+        }
+
+        // --- 7. EXPORT ---
+        async function exportDataSafe() {
+            if(!inventory.some(i => i.truckQty > 0)) {
+                alert("Kamyon boş! İşlem yapmadınız."); return;
+            }
+            if(!confirm("Dosyalar indirilecek. Onaylıyor musunuz?")) return;
+
+            document.getElementById('loading-overlay').style.display = 'flex';
+
+            setTimeout(async () => {
+                try {
+                    await createExcelWithFixedDecimals('Giden_Liste', 'truck');
+                    await createExcelWithFixedDecimals('Kalan_Liste', 'remain');
+                    
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    alert("Dosyalar İndirildi!");
+                    
+                    // İndirme bittiğinde kullanıcıya yeni dosya için sorabiliriz
+                    if(confirm("İndirme tamamlandı. Yeni bir dosya ile çalışmak ister misiniz?")) {
+                        resetApp();
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                    alert("Hata: " + err.message);
+                    document.getElementById('loading-overlay').style.display = 'none';
+                }
+            }, 500);
+        }
+
+        async function createExcelWithFixedDecimals(prefix, type) {
+            const workbook = await XlsxPopulate.fromDataAsync(rawFileBuffer);
+            const sheet = workbook.sheet(0); 
+
+            inventory.forEach(item => {
+                const targetQty = (type === 'truck') ? item.truckQty : item.currentQty;
+                const unitVol = item.totalVol / item.totalQty; 
+                const targetVol = targetQty * unitVol; 
+
+                // Adet
+                sheet.cell(item.qtyAddr).value(targetQty);
+
+                // Hacim (3 hane)
+                const volCell = sheet.cell(item.volAddr);
+                volCell.value(targetVol);
+                volCell.style("numberFormat", "0.000"); 
+            });
+
+            // Özel Yan Toplamlar (T Sütunu)
+            for (let r = 9; r <= 98; r++) {
+                sheet.cell(`T${r}`).style("numberFormat", "0.000");
+            }
+
+            // Özel Alt Hücreler
+            const specialCells = ["D98", "F98", "H98", "J98", "L98", "N98", "P98", "D102"];
+            specialCells.forEach(addr => {
+                sheet.cell(addr).style("numberFormat", "0.000");
+            });
+
+            const blob = await workbook.outputAsync();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            const date = new Date().toISOString().slice(0,10);
+            a.href = url;
+            a.download = `${prefix}_${date}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+
+        function showError(msg) {
+            const box = document.getElementById('error-box');
+            box.innerText = msg;
+            box.style.display = 'block';
+        }
+
+    </script>
+</body>
+</html>
