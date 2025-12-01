@@ -12,7 +12,6 @@
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' style='background-color: white;'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
     
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/xlsx-populate/browser/xlsx-populate.min.js"></script>
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
@@ -33,13 +32,14 @@
         
         body { 
             background: var(--bg); 
-            height: 100vh; 
+            /* Mobil tarayıcılar için kritik düzeltme: dvh */
+            height: 100vh;
+            height: 100dvh; 
             display: flex; 
             flex-direction: column;
             overflow: hidden; 
-            /* iOS güvenli alan ayarı */
             padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
+            /* Footer padding'i aşağıda footer'ın kendisine verildi */
         }
 
         /* --- GİRİŞ EKRANI --- */
@@ -74,15 +74,14 @@
             gap: 5px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             position: relative;
+            z-index: 50; /* Tablonun üstünde kalsın */
         }
 
-        /* Yeni İşlem Butonu (Footer'a taşındığı için stili güncellendi) */
         .btn-reset {
-            /* Absolute pozisyon kaldırıldı */
             background: #f1f5f9;
             color: #64748b;
             border: 1px solid var(--border);
-            border-radius: 8px; /* Footer'a uyum için biraz büyütüldü */
+            border-radius: 8px;
             font-size: 0.85rem;
             padding: 10px 15px;
             cursor: pointer;
@@ -102,9 +101,15 @@
 
         /* --- TABLO ALANI --- */
         #table-container {
-            flex: 1; overflow: auto; position: relative; padding: 0; background: #e2e8f0;
+            flex: 1; 
+            overflow: auto; 
+            position: relative; 
+            padding: 0; 
+            background: #e2e8f0;
+            /* Mobilde kaydırma deneyimi için */
+            -webkit-overflow-scrolling: touch;
         }
-        table { border-collapse: separate; border-spacing: 0; width: 100%; background: white; }
+        table { border-collapse: separate; border-spacing: 0; width: 100%; background: white; padding-bottom: 20px; } /* En altta biraz boşluk */
         th, td { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 8px; text-align: center; vertical-align: middle; background: white; }
 
         /* Sticky Headers */
@@ -114,7 +119,7 @@
 
         /* Hücre İçeriği */
         .cell-controls { display: flex; align-items: center; justify-content: center; gap: 4px; }
-        .btn-ctrl { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: 0.1s; user-select: none; font-size: 1.2rem; } /* Mobilde daha kolay basılsın diye büyüttüm */
+        .btn-ctrl { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: 0.1s; user-select: none; font-size: 1.2rem; }
         .btn-ctrl:active { background: #e2e8f0; transform: scale(0.95); }
         .btn-minus { color: var(--danger); }
         .btn-plus { color: var(--success); }
@@ -132,16 +137,24 @@
         td.empty-data { background: #f8fafc; color: #cbd5e1; font-size: 0.8rem; }
         td.active-shipment { background: #f0fdf4; }
 
-        /* --- FOOTER --- */
+        /* --- FOOTER (DÜZELTİLDİ) --- */
         #footer {
-            background: white; border-top: 1px solid var(--border); padding: 10px 20px;
+            background: white; 
+            border-top: 1px solid var(--border); 
+            padding: 10px 20px;
             display: flex; 
-            justify-content: space-between; /* İki butonu uçlara yaslamak için değiştirildi */
-            align-items: center; flex-shrink: 0; height: 70px; 
+            justify-content: space-between;
+            align-items: center; 
+            flex-shrink: 0; 
+            /* Mobilde alt bar sorununu çözen kısım */
+            height: auto;
+            min-height: 70px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
+            z-index: 100;
         }
         .btn-finish {
-            background: var(--primary); color: white; padding: 12px 30px; border-radius: 8px; border: none;
-            font-weight: 600; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-size: 1rem;
+            background: var(--primary); color: white; padding: 12px 20px; border-radius: 8px; border: none;
+            font-weight: 600; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-size: 0.9rem;
         }
         .btn-finish:hover { background: #0f172a; }
 
@@ -271,7 +284,7 @@
             // UI Temizle
             document.querySelector('#matrix-table thead').innerHTML = '';
             document.querySelector('#matrix-table tbody').innerHTML = '';
-            document.getElementById('file-input').value = ''; // Inputu temizle
+            document.getElementById('file-input').value = ''; 
             document.getElementById('error-box').style.display = 'none';
 
             // Ekranları Değiştir
@@ -487,7 +500,6 @@
                     document.getElementById('loading-overlay').style.display = 'none';
                     alert("Dosyalar İndirildi!");
                     
-                    // İndirme bittiğinde kullanıcıya yeni dosya için sorabiliriz
                     if(confirm("İndirme tamamlandı. Yeni bir dosya ile çalışmak ister misiniz?")) {
                         resetApp();
                     }
