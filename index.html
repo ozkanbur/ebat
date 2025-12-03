@@ -576,7 +576,7 @@
             document.getElementById('lbl-remain-m3').innerText = remainVol.toFixed(3);
         }
 
-        // --- 7. EXPORT ---
+        // --- 7. EXPORT (GÜNCELLENDİ: SIRALI ÇIKTI) ---
         async function exportDataSafe() {
             if(!inventory.some(i => i.truckQty > 0)) {
                 alert("Kamyon boş! İşlem yapmadınız."); return;
@@ -587,8 +587,8 @@
 
             setTimeout(async () => {
                 try {
-                    await createExcelWithFixedDecimals('Giden_Liste', 'truck');
-                    await createExcelWithFixedDecimals('Kalan_Liste', 'remain');
+                    await createExcelWithSortedColumns('Giden_Liste', 'truck');
+                    await createExcelWithSortedColumns('Kalan_Liste', 'remain');
                     
                     document.getElementById('loading-overlay').style.display = 'none';
                     alert("Dosyalar İndirildi!");
@@ -605,48 +605,92 @@
             }, 500);
         }
 
-        async function createExcelWithFixedDecimals(prefix, type) {
+        // YENİ FONKSİYON: Sütunları Küçükten Büyüğe Sıralayarak Yazar
+        async function createExcelWithSortedColumns(prefix, type) {
             const workbook = await XlsxPopulate.fromDataAsync(rawFileBuffer);
             const sheet = workbook.sheet(0); 
 
             const activeRows = new Set();
 
+            // 1. Tüm benzersiz boyları bul ve küçükten büyüğe sırala
+            const sortedLengths = [...new Set(inventory.map(i => i.length))].sort((a,b) => a - b);
+
+            // 2. Excel'de kullanılan veri sütunlarını (Adet sütunları) bul ve sırala
+            // qtyAddr örneğin "D12", sheet.cell("D12").columnNumber() sütun indeksini verir (1-based)
+            const usedColIndices = [...new Set(inventory.map(i => {
+                return sheet.cell(i.qtyAddr).columnNumber();
+            }))].sort((a,b) => a - b);
+
+            // 3. Boy -> Sütun Eşleşme Haritası Oluştur
+            // (En küçük boy -> En soldaki veri sütununa)
+            const lengthToColMap = {};
+            sortedLengths.forEach((len, index) => {
+                if(usedColIndices[index]) {
+                    lengthToColMap[len] = usedColIndices[index];
+                }
+            });
+
+            // 4. BAŞLIKLARI GÜNCELLE (7. SATIR)
+            // Kullanıcının isteği üzerine 7. satırda boyları sıralı yazıyoruz.
+            sortedLengths.forEach((len, index) => {
+                const colIdx = usedColIndices[index];
+                if(colIdx) {
+                    sheet.row(7).cell(colIdx).value(len);
+                }
+            });
+
+            // 5. VERİLERİ YENİ SÜTUNLARA YAZ
             inventory.forEach(item => {
                 const targetQty = (type === 'truck') ? item.truckQty : item.currentQty;
                 const unitVol = item.totalVol / item.totalQty; 
                 const targetVol = targetQty * unitVol; 
 
+                // Orijinal satır numarasını al (Bu değişmiyor, çap satırı sabittir)
                 const rowNum = parseInt(item.qtyAddr.match(/\d+/)[0]);
+                
+                // Yeni hedef sütunu bul
+                const newColIdx = lengthToColMap[item.length];
 
-                if(targetQty > 0) {
-                    sheet.cell(item.qtyAddr).value(targetQty);
-                    const volCell = sheet.cell(item.volAddr);
-                    volCell.value(targetVol);
-                    volCell.style("numberFormat", "0.000");
-                    activeRows.add(rowNum);
-                } else {
-                    sheet.cell(item.qtyAddr).value(null);
-                    sheet.cell(item.volAddr).value(null);
+                if(newColIdx) {
+                    // XlsxPopulate ile hücreye eriş (row, col)
+                    const qtyCell = sheet.row(rowNum).cell(newColIdx);
+                    // Hacim hücresi genelde adet hücresinin 1 sağındadır
+                    const volCell = sheet.row(rowNum).cell(newColIdx + 1);
+
+                    // Orijinal hücreleri temizlemeye gerek yok çünkü tüm boylar
+                    // zaten bir sütuna denk gelecek ve üzerine yazacağız.
+
+                    if(targetQty > 0) {
+                        qtyCell.value(targetQty);
+                        volCell.value(targetVol);
+                        volCell.style("numberFormat", "0.000");
+                        activeRows.add(rowNum);
+                    } else {
+                        qtyCell.value(null);
+                        volCell.value(null);
+                    }
                 }
             });
 
+            // Satırları gizle/göster (Mevcut mantık)
             for (let r = 9; r <= 97; r++) {
                 if(!activeRows.has(r)) {
                     sheet.row(r).hidden(true);
                 } else {
                     sheet.row(r).hidden(false); 
                 }
+                // T sütunu formatı (Sabit kalabilir veya dinamikse dokunulmaz)
                 sheet.cell(`T${r}`).style("numberFormat", "0.000");
             }
 
-            // T98 BURAYA EKLENDİ
+            // Alt toplam formatları
             const specialCells = ["D98", "F98", "H98", "J98", "L98", "N98", "P98", "T98", "D102"];
             specialCells.forEach(addr => {
                 sheet.cell(addr).style("numberFormat", "0.000");
             });
-
             sheet.cell("Y5").style("numberFormat", "0.000");
 
+            // Dosyayı İndir
             const blob = await workbook.outputAsync();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
