@@ -576,7 +576,7 @@
             document.getElementById('lbl-remain-m3').innerText = remainVol.toFixed(3);
         }
 
-        // --- 7. EXPORT (GÜNCELLENDİ: FORMAT & YAZDIRMA ALANI) ---
+        // --- 7. EXPORT (GÜNCELLENDİ: PRINT AREA & FORMAT & GİZLEME) ---
         async function exportDataSafe() {
             if(!inventory.some(i => i.truckQty > 0)) {
                 alert("Kamyon boş! İşlem yapmadınız."); return;
@@ -660,7 +660,7 @@
                 }
             });
 
-            // --- YENİ EKLENEN KISIM 1: GENEL FORMAT TEMİZLİĞİ ---
+            // --- 1: GENEL FORMAT TEMİZLİĞİ ---
             for(let r = 9; r <= 104; r++) {
                 for(let c = 3; c <= 20; c++) { 
                      const cell = sheet.row(r).cell(c);
@@ -670,7 +670,7 @@
                 }
             }
 
-            // --- YENİ EKLENEN KISIM 2: ÖZEL SÜTUNLAR İÇİN FORMATLAMA ---
+            // --- 2: ÖZEL SÜTUNLAR İÇİN FORMATLAMA ---
             // D(4), F(6), H(8), J(10), L(12), N(14), P(16), T(20)
             const integerCols = [4, 6, 8, 10, 12, 14, 16, 20];
             
@@ -686,7 +686,9 @@
             sheet.cell("D102").style("numberFormat", "#,##0");
 
 
-            // Satır Gizleme
+            // --- 3: GİZLEME VE PRINT AREA ---
+            
+            // A) Boş satırları gizle
             for (let r = 9; r <= 97; r++) {
                 if(!activeRows.has(r)) {
                     sheet.row(r).hidden(true);
@@ -695,11 +697,18 @@
                 }
             }
             
-            // Yazdırma Alanı Zorlama (Tarayıcı desteği varsa)
-            try {
-               sheet.pageSetup().printArea("A1:T104");
-            } catch (e) {
-               console.log("Print area skip");
+            // B) PRINT AREA AYARI - 1: Defined Name Yöntemi
+            // sheet.pageSetup() fonksiyonu tarayıcıda çalışmadığı için,
+            // Excel'in "Ad Tanımlama" (Defined Name) özelliğini kullanarak
+            // "Print_Area" adını manuel oluşturuyoruz.
+            const sheetName = sheet.name() || "Sheet1";
+            workbook.definedName("Print_Area", `'${sheetName}'!$A$1:$T$104`);
+
+            // C) PRINT AREA AYARI - 2: Fazla Sütunları Gizleme (YEDEK PLAN)
+            // T sütunu = 20. sütun. 21. sütundan (U) itibaren 50. sütuna kadar gizliyoruz.
+            // Bu, yazıcının T sütunundan sonrasını görmemesini %100 garanti eder.
+            for (let c = 21; c <= 50; c++) {
+                sheet.column(c).hidden(true);
             }
 
             const blob = await workbook.outputAsync();
