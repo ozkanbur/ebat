@@ -576,7 +576,7 @@
             document.getElementById('lbl-remain-m3').innerText = remainVol.toFixed(3);
         }
 
-        // --- 7. EXPORT (GÜNCELLENDİ: SIRALI + YAZDIRMA AYARLI) ---
+        // --- 7. EXPORT (GÜNCELLENDİ: HATA VEREN KISIM KALDIRILDI) ---
         async function exportDataSafe() {
             if(!inventory.some(i => i.truckQty > 0)) {
                 alert("Kamyon boş! İşlem yapmadınız."); return;
@@ -671,10 +671,10 @@
                 }
             });
 
-            // 6. GİZLEME VE FORMATLAMA
+            // 6. GİZLEME VE FORMATLAMA (Burası yazıcı ayarı için kritiktir)
             for (let r = 9; r <= 97; r++) {
                 if(!activeRows.has(r)) {
-                    sheet.row(r).hidden(true);
+                    sheet.row(r).hidden(true); // Veri olmayan satırları gizle
                 } else {
                     sheet.row(r).hidden(false); 
                 }
@@ -688,22 +688,9 @@
             });
             sheet.cell("Y5").style("numberFormat", "0.000");
 
-            // --- YENİ EKLENEN KISIM: YAZDIRMA ALANI AYARLARI ---
-            if(usedColIndices.length > 0) {
-                // En son kullanılan veri sütununun bir sağı (Hacim sütunu) son sütundur.
-                const maxColIndex = Math.max(...usedColIndices) + 1;
-                const maxColLetter = getColumnLetter(maxColIndex);
-                
-                // Yazdırma Alanı: A1'den en son veri sütununun 105. satırına kadar
-                // (105. satır alt toplamlar ve imzalar için güvenli bir aralık)
-                const printAreaRange = `A1:${maxColLetter}105`;
-
-                sheet.pageSetup().printArea(printAreaRange);
-                sheet.pageSetup().fitToPage(true);
-                sheet.pageSetup().fitToWidth(1);  // Genişliği 1 sayfaya sığdır (Yazıları büyütür)
-                sheet.pageSetup().fitToHeight(false); // Yüksekliği serbest bırak
-            }
-            // ---------------------------------------------------
+            // --- YAZDIRMA AYARLARI ---
+            // Not: pageSetup() fonksiyonu tarayıcıda hata verdiği için kaldırıldı.
+            // Satırları gizleme (hidden: true) özelliği zaten çıktı boyutunu küçültür.
 
             const blob = await workbook.outputAsync();
             const url = window.URL.createObjectURL(blob);
