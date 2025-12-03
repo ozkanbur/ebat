@@ -576,7 +576,7 @@
             document.getElementById('lbl-remain-m3').innerText = remainVol.toFixed(3);
         }
 
-        // --- 7. EXPORT (GÜNCELLENDİ: HATA VEREN KISIM KALDIRILDI) ---
+        // --- 7. EXPORT (GÜNCELLENDİ: FORMAT & YAZDIRMA ALANI) ---
         async function exportDataSafe() {
             if(!inventory.some(i => i.truckQty > 0)) {
                 alert("Kamyon boş! İşlem yapmadınız."); return;
@@ -587,8 +587,8 @@
 
             setTimeout(async () => {
                 try {
-                    await createExcelWithSortedColumns('Giden_Liste', 'truck');
-                    await createExcelWithSortedColumns('Kalan_Liste', 'remain');
+                    await createExcelWithFixedMapping('Giden_Liste', 'truck');
+                    await createExcelWithFixedMapping('Kalan_Liste', 'remain');
                     
                     document.getElementById('loading-overlay').style.display = 'none';
                     alert("Dosyalar İndirildi!");
@@ -605,48 +605,34 @@
             }, 500);
         }
 
-        // Yardımcı: Kolon İndeksini Harfe Çevir (1->A, 2->B)
-        function getColumnLetter(colIndex) {
-            let temp, letter = '';
-            while (colIndex > 0) {
-                temp = (colIndex - 1) % 26;
-                letter = String.fromCharCode(temp + 65) + letter;
-                colIndex = (colIndex - temp - 1) / 26;
-            }
-            return letter;
-        }
-
-        async function createExcelWithSortedColumns(prefix, type) {
+        async function createExcelWithFixedMapping(prefix, type) {
             const workbook = await XlsxPopulate.fromDataAsync(rawFileBuffer);
             const sheet = workbook.sheet(0); 
 
             const activeRows = new Set();
-
-            // 1. Tüm benzersiz boyları bul ve küçükten büyüğe sırala
             const sortedLengths = [...new Set(inventory.map(i => i.length))].sort((a,b) => a - b);
+            const targetCols = [3, 5, 7, 9, 11, 13, 15]; // C, E, G, I, K, M, O
 
-            // 2. Excel'de kullanılan veri sütunlarını bul ve sırala
-            const usedColIndices = [...new Set(inventory.map(i => {
-                return sheet.cell(i.qtyAddr).columnNumber();
-            }))].sort((a,b) => a - b);
-
-            // 3. Eşleşme Haritası
+            // Boy -> Sütun Haritası
             const lengthToColMap = {};
             sortedLengths.forEach((len, index) => {
-                if(usedColIndices[index]) {
-                    lengthToColMap[len] = usedColIndices[index];
+                let colIdx;
+                if(index < targetCols.length) {
+                    colIdx = targetCols[index];
+                } else {
+                    colIdx = 15 + ((index - 6) * 2);
                 }
+                lengthToColMap[len] = colIdx;
             });
 
-            // 4. BAŞLIKLARI GÜNCELLE
+            // Başlıkları Temizle ve Yaz
+            targetCols.forEach(c => sheet.row(7).cell(c).value(null));
             sortedLengths.forEach((len, index) => {
-                const colIdx = usedColIndices[index];
-                if(colIdx) {
-                    sheet.row(7).cell(colIdx).value(len);
-                }
+                const colIdx = lengthToColMap[len];
+                if(colIdx) sheet.row(7).cell(colIdx).value(len);
             });
 
-            // 5. VERİLERİ YAZ
+            // Verileri Yaz
             inventory.forEach(item => {
                 const targetQty = (type === 'truck') ? item.truckQty : item.currentQty;
                 const unitVol = item.totalVol / item.totalQty; 
@@ -661,8 +647,11 @@
 
                     if(targetQty > 0) {
                         qtyCell.value(targetQty);
+                        qtyCell.style("numberFormat", "0"); 
+
                         volCell.value(targetVol);
-                        volCell.style("numberFormat", "0.000");
+                        volCell.style("numberFormat", "0.000"); 
+                        
                         activeRows.add(rowNum);
                     } else {
                         qtyCell.value(null);
@@ -671,26 +660,47 @@
                 }
             });
 
-            // 6. GİZLEME VE FORMATLAMA (Burası yazıcı ayarı için kritiktir)
+            // --- YENİ EKLENEN KISIM 1: GENEL FORMAT TEMİZLİĞİ ---
+            for(let r = 9; r <= 104; r++) {
+                for(let c = 3; c <= 20; c++) { 
+                     const cell = sheet.row(r).cell(c);
+                     if(cell.value() === undefined || cell.value() === null) {
+                         cell.style("numberFormat", "0");
+                     }
+                }
+            }
+
+            // --- YENİ EKLENEN KISIM 2: ÖZEL SÜTUNLAR İÇİN FORMATLAMA ---
+            // D(4), F(6), H(8), J(10), L(12), N(14), P(16), T(20)
+            const integerCols = [4, 6, 8, 10, 12, 14, 16, 20];
+            
+            // Satır 9'dan 98'e kadar
+            for (let r = 9; r <= 98; r++) {
+                integerCols.forEach(c => {
+                    // Format: "#,##0" -> Binlik ayraç var, ondalık yok
+                    sheet.row(r).cell(c).style("numberFormat", "#,##0");
+                });
+            }
+            
+            // D102 Hücresi
+            sheet.cell("D102").style("numberFormat", "#,##0");
+
+
+            // Satır Gizleme
             for (let r = 9; r <= 97; r++) {
                 if(!activeRows.has(r)) {
-                    sheet.row(r).hidden(true); // Veri olmayan satırları gizle
+                    sheet.row(r).hidden(true);
                 } else {
                     sheet.row(r).hidden(false); 
                 }
-                sheet.cell(`T${r}`).style("numberFormat", "0.000");
             }
-
-            // Alt toplam formatları
-            const specialCells = ["D98", "F98", "H98", "J98", "L98", "N98", "P98", "T98", "D102"];
-            specialCells.forEach(addr => {
-                sheet.cell(addr).style("numberFormat", "0.000");
-            });
-            sheet.cell("Y5").style("numberFormat", "0.000");
-
-            // --- YAZDIRMA AYARLARI ---
-            // Not: pageSetup() fonksiyonu tarayıcıda hata verdiği için kaldırıldı.
-            // Satırları gizleme (hidden: true) özelliği zaten çıktı boyutunu küçültür.
+            
+            // Yazdırma Alanı Zorlama (Tarayıcı desteği varsa)
+            try {
+               sheet.pageSetup().printArea("A1:T104");
+            } catch (e) {
+               console.log("Print area skip");
+            }
 
             const blob = await workbook.outputAsync();
             const url = window.URL.createObjectURL(blob);
