@@ -576,7 +576,7 @@
             document.getElementById('lbl-remain-m3').innerText = remainVol.toFixed(3);
         }
 
-        // --- 7. EXPORT (GÜNCELLENDİ: SIRALI ÇIKTI) ---
+        // --- 7. EXPORT (GÜNCELLENDİ: SIRALI + YAZDIRMA AYARLI) ---
         async function exportDataSafe() {
             if(!inventory.some(i => i.truckQty > 0)) {
                 alert("Kamyon boş! İşlem yapmadınız."); return;
@@ -605,7 +605,17 @@
             }, 500);
         }
 
-        // YENİ FONKSİYON: Sütunları Küçükten Büyüğe Sıralayarak Yazar
+        // Yardımcı: Kolon İndeksini Harfe Çevir (1->A, 2->B)
+        function getColumnLetter(colIndex) {
+            let temp, letter = '';
+            while (colIndex > 0) {
+                temp = (colIndex - 1) % 26;
+                letter = String.fromCharCode(temp + 65) + letter;
+                colIndex = (colIndex - temp - 1) / 26;
+            }
+            return letter;
+        }
+
         async function createExcelWithSortedColumns(prefix, type) {
             const workbook = await XlsxPopulate.fromDataAsync(rawFileBuffer);
             const sheet = workbook.sheet(0); 
@@ -615,14 +625,12 @@
             // 1. Tüm benzersiz boyları bul ve küçükten büyüğe sırala
             const sortedLengths = [...new Set(inventory.map(i => i.length))].sort((a,b) => a - b);
 
-            // 2. Excel'de kullanılan veri sütunlarını (Adet sütunları) bul ve sırala
-            // qtyAddr örneğin "D12", sheet.cell("D12").columnNumber() sütun indeksini verir (1-based)
+            // 2. Excel'de kullanılan veri sütunlarını bul ve sırala
             const usedColIndices = [...new Set(inventory.map(i => {
                 return sheet.cell(i.qtyAddr).columnNumber();
             }))].sort((a,b) => a - b);
 
-            // 3. Boy -> Sütun Eşleşme Haritası Oluştur
-            // (En küçük boy -> En soldaki veri sütununa)
+            // 3. Eşleşme Haritası
             const lengthToColMap = {};
             sortedLengths.forEach((len, index) => {
                 if(usedColIndices[index]) {
@@ -630,8 +638,7 @@
                 }
             });
 
-            // 4. BAŞLIKLARI GÜNCELLE (7. SATIR)
-            // Kullanıcının isteği üzerine 7. satırda boyları sıralı yazıyoruz.
+            // 4. BAŞLIKLARI GÜNCELLE
             sortedLengths.forEach((len, index) => {
                 const colIdx = usedColIndices[index];
                 if(colIdx) {
@@ -639,26 +646,18 @@
                 }
             });
 
-            // 5. VERİLERİ YENİ SÜTUNLARA YAZ
+            // 5. VERİLERİ YAZ
             inventory.forEach(item => {
                 const targetQty = (type === 'truck') ? item.truckQty : item.currentQty;
                 const unitVol = item.totalVol / item.totalQty; 
                 const targetVol = targetQty * unitVol; 
 
-                // Orijinal satır numarasını al (Bu değişmiyor, çap satırı sabittir)
                 const rowNum = parseInt(item.qtyAddr.match(/\d+/)[0]);
-                
-                // Yeni hedef sütunu bul
                 const newColIdx = lengthToColMap[item.length];
 
                 if(newColIdx) {
-                    // XlsxPopulate ile hücreye eriş (row, col)
                     const qtyCell = sheet.row(rowNum).cell(newColIdx);
-                    // Hacim hücresi genelde adet hücresinin 1 sağındadır
                     const volCell = sheet.row(rowNum).cell(newColIdx + 1);
-
-                    // Orijinal hücreleri temizlemeye gerek yok çünkü tüm boylar
-                    // zaten bir sütuna denk gelecek ve üzerine yazacağız.
 
                     if(targetQty > 0) {
                         qtyCell.value(targetQty);
@@ -672,14 +671,13 @@
                 }
             });
 
-            // Satırları gizle/göster (Mevcut mantık)
+            // 6. GİZLEME VE FORMATLAMA
             for (let r = 9; r <= 97; r++) {
                 if(!activeRows.has(r)) {
                     sheet.row(r).hidden(true);
                 } else {
                     sheet.row(r).hidden(false); 
                 }
-                // T sütunu formatı (Sabit kalabilir veya dinamikse dokunulmaz)
                 sheet.cell(`T${r}`).style("numberFormat", "0.000");
             }
 
@@ -690,7 +688,23 @@
             });
             sheet.cell("Y5").style("numberFormat", "0.000");
 
-            // Dosyayı İndir
+            // --- YENİ EKLENEN KISIM: YAZDIRMA ALANI AYARLARI ---
+            if(usedColIndices.length > 0) {
+                // En son kullanılan veri sütununun bir sağı (Hacim sütunu) son sütundur.
+                const maxColIndex = Math.max(...usedColIndices) + 1;
+                const maxColLetter = getColumnLetter(maxColIndex);
+                
+                // Yazdırma Alanı: A1'den en son veri sütununun 105. satırına kadar
+                // (105. satır alt toplamlar ve imzalar için güvenli bir aralık)
+                const printAreaRange = `A1:${maxColLetter}105`;
+
+                sheet.pageSetup().printArea(printAreaRange);
+                sheet.pageSetup().fitToPage(true);
+                sheet.pageSetup().fitToWidth(1);  // Genişliği 1 sayfaya sığdır (Yazıları büyütür)
+                sheet.pageSetup().fitToHeight(false); // Yüksekliği serbest bırak
+            }
+            // ---------------------------------------------------
+
             const blob = await workbook.outputAsync();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
