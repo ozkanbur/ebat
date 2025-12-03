@@ -576,7 +576,7 @@
             document.getElementById('lbl-remain-m3').innerText = remainVol.toFixed(3);
         }
 
-        // --- 7. EXPORT (GÜNCELLENDİ: PRINT AREA & FORMAT & GİZLEME) ---
+        // --- 7. EXPORT (GÜNCELLENDİ: TEMİZLİK DÜZELTİLDİ) ---
         async function exportDataSafe() {
             if(!inventory.some(i => i.truckQty > 0)) {
                 alert("Kamyon boş! İşlem yapmadınız."); return;
@@ -611,7 +611,7 @@
 
             const activeRows = new Set();
             const sortedLengths = [...new Set(inventory.map(i => i.length))].sort((a,b) => a - b);
-            const targetCols = [3, 5, 7, 9, 11, 13, 15]; // C, E, G, I, K, M, O
+            const targetCols = [3, 5, 7, 9, 11, 13, 15]; // C, E, G, I, K, M, O (ADET SÜTUNLARI)
 
             // Boy -> Sütun Haritası
             const lengthToColMap = {};
@@ -625,44 +625,61 @@
                 lengthToColMap[len] = colIdx;
             });
 
-            // Başlıkları Temizle ve Yaz
+            // ----------------------------------------------------
+            // 1. ADIM: TEMİZLİK (KRİTİK DÜZELTME)
+            // ----------------------------------------------------
+            // Sadece Adet sütunlarını (C, E, G...) temizle. 
+            // Döngüyü 17 (Q) sütununda bitir. 19 (S) sütununa ASLA dokunma.
+            // Satır aralığı: 9 - 97 (Dahil)
+            
+            // Başlıkları temizle (7. satır)
             targetCols.forEach(c => sheet.row(7).cell(c).value(null));
+            
+            // Veri satırlarını temizle (9 - 97)
+            for(let r = 9; r <= 97; r++) {
+                // Sütunlar: 3(C), 5(E) ... 17(Q). Sütun S (19) HARİÇ.
+                for(let c = 3; c <= 17; c+=2) { 
+                    sheet.row(r).cell(c).value(null);
+                }
+            }
+
+            // ----------------------------------------------------
+            // 2. ADIM: YENİ BAŞLIKLARI YAZ
+            // ----------------------------------------------------
             sortedLengths.forEach((len, index) => {
                 const colIdx = lengthToColMap[len];
                 if(colIdx) sheet.row(7).cell(colIdx).value(len);
             });
 
-            // Verileri Yaz
+            // ----------------------------------------------------
+            // 3. ADIM: DOĞRU VERİLERİ YERİNE YAZ
+            // ----------------------------------------------------
             inventory.forEach(item => {
                 const targetQty = (type === 'truck') ? item.truckQty : item.currentQty;
-                const unitVol = item.totalVol / item.totalQty; 
-                const targetVol = targetQty * unitVol; 
-
+                
                 const rowNum = parseInt(item.qtyAddr.match(/\d+/)[0]);
                 const newColIdx = lengthToColMap[item.length];
 
                 if(newColIdx) {
                     const qtyCell = sheet.row(rowNum).cell(newColIdx);
-                    const volCell = sheet.row(rowNum).cell(newColIdx + 1);
-
+                    
                     if(targetQty > 0) {
                         qtyCell.value(targetQty);
                         qtyCell.style("numberFormat", "0"); 
-
-                        volCell.value(targetVol);
-                        volCell.style("numberFormat", "0.000"); 
-                        
                         activeRows.add(rowNum);
-                    } else {
-                        qtyCell.value(null);
-                        volCell.value(null);
-                    }
+                    } 
                 }
             });
 
-            // --- 1: GENEL FORMAT TEMİZLİĞİ ---
-            for(let r = 9; r <= 104; r++) {
-                for(let c = 3; c <= 20; c++) { 
+            // ----------------------------------------------------
+            // 4. ADIM: FORMATLAMA VE GİZLEME
+            // ----------------------------------------------------
+            
+            // Genel Format: Boş adet hücreleri "0" formatında olsun
+            // Sütun aralığı yine 20'ye kadar ama S'yi koruyarak sadece boşlara bakıyoruz.
+            for(let r = 9; r <= 97; r++) {
+                // Sütun Q(17) son. S(19) formül.
+                for(let c = 3; c <= 17; c+=2) { 
                      const cell = sheet.row(r).cell(c);
                      if(cell.value() === undefined || cell.value() === null) {
                          cell.style("numberFormat", "0");
@@ -670,25 +687,17 @@
                 }
             }
 
-            // --- 2: ÖZEL SÜTUNLAR İÇİN FORMATLAMA ---
-            // D(4), F(6), H(8), J(10), L(12), N(14), P(16), T(20)
+            // Hacim Sütunları Formatı (D, F, H... - Çift sayılar)
+            // Sadece bu sütunlara binlik ayraç veriyoruz.
             const integerCols = [4, 6, 8, 10, 12, 14, 16, 20];
-            
-            // Satır 9'dan 98'e kadar
             for (let r = 9; r <= 98; r++) {
                 integerCols.forEach(c => {
-                    // Format: "#,##0" -> Binlik ayraç var, ondalık yok
                     sheet.row(r).cell(c).style("numberFormat", "#,##0");
                 });
             }
-            
-            // D102 Hücresi
             sheet.cell("D102").style("numberFormat", "#,##0");
 
-
-            // --- 3: GİZLEME VE PRINT AREA ---
-            
-            // A) Boş satırları gizle
+            // Satır Gizleme
             for (let r = 9; r <= 97; r++) {
                 if(!activeRows.has(r)) {
                     sheet.row(r).hidden(true);
@@ -697,16 +706,10 @@
                 }
             }
             
-            // B) PRINT AREA AYARI - 1: Defined Name Yöntemi
-            // sheet.pageSetup() fonksiyonu tarayıcıda çalışmadığı için,
-            // Excel'in "Ad Tanımlama" (Defined Name) özelliğini kullanarak
-            // "Print_Area" adını manuel oluşturuyoruz.
+            // Print Area & Sütun Gizleme
             const sheetName = sheet.name() || "Sheet1";
             workbook.definedName("Print_Area", `'${sheetName}'!$A$1:$T$104`);
 
-            // C) PRINT AREA AYARI - 2: Fazla Sütunları Gizleme (YEDEK PLAN)
-            // T sütunu = 20. sütun. 21. sütundan (U) itibaren 50. sütuna kadar gizliyoruz.
-            // Bu, yazıcının T sütunundan sonrasını görmemesini %100 garanti eder.
             for (let c = 21; c <= 50; c++) {
                 sheet.column(c).hidden(true);
             }
