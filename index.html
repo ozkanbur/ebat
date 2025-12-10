@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Tomruk Stok Pro v2.0</title>
+    <title>Tomruk Stok Pro v2.1</title>
 
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' style='background-color: white;'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
@@ -80,11 +80,12 @@
         }
 
         #dashboard {
-            padding: 5px 10px;
+            padding: 8px 10px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            height: 60px;
+            align-items: stretch; /* Yüksekliği eşitle */
+            height: auto;
+            min-height: 65px;
             gap: 5px;
         }
 
@@ -133,12 +134,19 @@
             flex-shrink: 0;
         }
 
-        .stat-group { display: flex; gap: 10px; width: 100%; justify-content: space-around; }
-        .stat-item { display: flex; flex-direction: column; align-items: center; min-width: 80px; }
-        .stat-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: #64748b; margin-bottom: 2px; }
-        .stat-values { font-family: 'Roboto Mono', monospace; font-size: 0.9rem; font-weight: 600; color: var(--primary); display: flex; gap: 4px; align-items: center; }
-        .val-unit { font-size: 0.7rem; color: #94a3b8; font-weight: 500; }
-        .divider { width: 1px; height: 10px; background: #cbd5e1; }
+        /* İstatistik Kutuları */
+        .stat-group { display: flex; gap: 8px; width: 100%; justify-content: space-between; }
+        .stat-item { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            flex: 1; 
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 4px;
+        }
+        .stat-title { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 800; color: #64748b; margin-bottom: 4px; text-align: center; }
+        .stat-values { 
+            font-family: 'Roboto Mono', monospace; font-size: 0.85rem; font-weight: 600; color: var(--primary); 
+            display: flex; flex-direction: column; align-items: center; line-height: 1.2;
+        }
+        .val-unit { font-size: 0.7rem; color: #94a3b8; font-weight: 500; margin-left: 2px; }
         
         .txt-success { color: var(--success); }
         .txt-accent { color: var(--accent); }
@@ -219,7 +227,7 @@
         <div class="upload-box">
             <div style="font-size: 3rem; margin-bottom: 10px;">🌲</div>
             <h2 style="color: var(--primary); margin-bottom: 5px;">Tomruk Stok Pro</h2>
-            <div style="font-size:0.8rem; color: var(--accent); font-weight:600; margin-bottom: 10px;">Sıralı Filo Yönetimi v2.0</div>
+            <div style="font-size:0.8rem; color: var(--accent); font-weight:600; margin-bottom: 10px;">Zincirleme Stok Sistemi v2.1</div>
             
             <p style="color: #64748b; font-size: 0.9rem; line-height: 1.5;">
                 <strong>Özkan KANBUR</strong><br>
@@ -250,21 +258,24 @@
                 <div class="stat-item">
                     <div class="stat-title">ANA STOK</div>
                     <div class="stat-values">
-                        <span id="lbl-total-qty">0</span> <span class="val-unit">Ad</span>
+                        <div><span id="lbl-start-qty">0</span> <span class="val-unit">Ad</span></div>
+                        <div><span id="lbl-start-m3">0.000</span> <span class="val-unit">m³</span></div>
                     </div>
                 </div>
+                
                 <div class="stat-item">
                     <div class="stat-title txt-success">BU ARAÇ</div>
                     <div class="stat-values txt-success">
-                        <span id="lbl-truck-qty">0</span> <span class="val-unit">Ad</span>
-                        <div class="divider"></div>
-                        <span id="lbl-truck-m3">0.000</span>
+                        <div><span id="lbl-truck-qty">0</span> <span class="val-unit">Ad</span></div>
+                        <div><span id="lbl-truck-m3">0.000</span> <span class="val-unit">m³</span></div>
                     </div>
                 </div>
+
                 <div class="stat-item">
-                    <div class="stat-title txt-accent">TÜM FİLO (TOPLAM)</div>
+                    <div class="stat-title txt-accent">KALAN</div>
                     <div class="stat-values txt-accent">
-                        <span id="lbl-fleet-m3">0.000</span> <span class="val-unit">m³</span>
+                        <div><span id="lbl-remain-qty">0</span> <span class="val-unit">Ad</span></div>
+                        <div><span id="lbl-remain-m3">0.000</span> <span class="val-unit">m³</span></div>
                     </div>
                 </div>
             </div>
@@ -288,15 +299,10 @@
 
     <script>
         let rawFileBuffer = null; 
-        
-        // --- VERİ YAPISI V2 ---
-        // inventory: Sabit veriler (Çap, Boy, Toplam Adet, Hacim Katsayısı)
-        // trucks: Dinamik veriler. Her kamyon bir obje.
         let inventory = [];
         let trucks = []; 
         let activeTruckIndex = 0;
 
-        // Sayfa yüklendiğinde
         window.addEventListener('DOMContentLoaded', () => {
             checkPreviousSession();
         });
@@ -322,7 +328,7 @@
                         trucks = [{
                             id: Date.now(),
                             name: "KAMYON 1",
-                            shipments: {} // itemId: qty şeklinde tutacak
+                            shipments: {} 
                         }];
                         activeTruckIndex = 0;
 
@@ -348,7 +354,7 @@
             updateDashboard();
         }
 
-        // --- 2. SEKME VE NAVİGASYON MANTIĞI ---
+        // --- 2. SEKME VE NAVİGASYON ---
         function renderTabs() {
             const container = document.getElementById('tab-container');
             container.innerHTML = '';
@@ -361,7 +367,6 @@
                 container.appendChild(btn);
             });
 
-            // Yeni Ekle Butonu
             const addBtn = document.createElement('button');
             addBtn.className = 'tab-add tab-btn';
             addBtn.innerHTML = '+';
@@ -372,7 +377,7 @@
         function switchTab(index) {
             activeTruckIndex = index;
             renderTabs();
-            renderTable(); // Tabloyu yeni limitlerle çiz
+            renderTable(); 
             updateDashboard();
         }
 
@@ -383,11 +388,11 @@
                 name: `KAMYON ${newNum}`,
                 shipments: {}
             });
-            switchTab(trucks.length - 1); // Yeni sekmeye git
+            switchTab(trucks.length - 1); 
             saveSession();
         }
 
-        // --- 3. TABLO RENDER (ZİNCİRLEME MANTIK BURADA) ---
+        // --- 3. TABLO RENDER (ZİNCİRLEME MANTIK) ---
         function renderTable() {
             const thead = document.querySelector('#matrix-table thead');
             const tbody = document.querySelector('#matrix-table tbody');
@@ -409,20 +414,19 @@
                 lengths.forEach(len => {
                     const item = itemsInRow.find(i => i.length === len);
                     if(item) {
-                        // --- ZİNCİRLEME HESAPLAMA ---
-                        // Önceki kamyonların yüklediklerini bul
+                        // ZİNCİRLEME HESAP:
+                        // Bu kamyondan ÖNCEKİ tüm kamyonların toplamını bul
                         let previousLoad = 0;
                         for(let i=0; i < activeTruckIndex; i++) {
                             previousLoad += (trucks[i].shipments[item.id] || 0);
                         }
 
-                        // Bu kamyon için kalan limit (Payda)
+                        // Bu kamyonun "Ana Stok"u = Orijinal Stok - Öncekiler
                         const limitForThisTruck = item.totalQty - previousLoad;
                         
-                        // Bu kamyonun yüklediği (Pay)
+                        // Bu kamyona yüklenen
                         const currentTruckLoad = trucks[activeTruckIndex].shipments[item.id] || 0;
                         
-                        // Birim Hacim
                         const unitVol = item.totalVol / item.totalQty;
                         const truckVol = currentTruckLoad * unitVol;
 
@@ -458,78 +462,89 @@
             const activeTruck = trucks[activeTruckIndex];
             const currentLoad = activeTruck.shipments[itemId] || 0;
 
-            // Önceki kamyonların yükünü hesapla (Limit kontrolü için)
+            // Limit kontrolü için öncekileri hesapla
             let previousLoad = 0;
             for(let i=0; i < activeTruckIndex; i++) {
                 previousLoad += (trucks[i].shipments[itemId] || 0);
             }
             const limit = item.totalQty - previousLoad;
 
-            // Arttırma Kontrolü
             if(delta === 1) {
-                if(currentLoad >= limit) return; // Limit aşılamaz
+                if(currentLoad >= limit) return; 
                 activeTruck.shipments[itemId] = currentLoad + 1;
             } 
-            // Azaltma Kontrolü
             else if(delta === -1) {
                 if(currentLoad <= 0) return;
                 activeTruck.shipments[itemId] = currentLoad - 1;
             }
 
             saveSession();
-            
-            // UI Güncelleme (Sadece ilgili hücreyi render etmek performansı artırır ama
-            // tüm tabloyu render etmek zincirleme etkiyi garantiye alır)
-            // Bu örnekte tüm tabloyu yeniliyoruz çünkü bir kamyondaki değişim, 
-            // eğer sekme mantığını değiştirseydik diğerlerini etkilerdi. 
-            // Burada o an sadece aktif sekme göründüğü için hücreyi güncellemek yeterli.
             renderTable(); 
             updateDashboard();
         }
 
+        // --- DASHBOARD GÜNCELLEME (YENİ MANTIK) ---
         function updateDashboard() {
-            // Ana Stok Toplamı
-            const totalStock = inventory.reduce((sum, i) => sum + i.totalQty, 0);
-            document.getElementById('lbl-total-qty').innerText = totalStock;
+            // Global Değişkenler
+            let totalStartQty = 0;
+            let totalStartVol = 0;
+            
+            let totalCurrentQty = 0;
+            let totalCurrentVol = 0;
+            
+            let totalEndQty = 0;
+            let totalEndVol = 0;
 
-            // Aktif Araç İstatistikleri
-            const activeTruck = trucks[activeTruckIndex];
-            let truckQty = 0;
-            let truckVol = 0;
-
-            // Tüm Filo İstatistikleri
-            let fleetVol = 0;
-
-            trucks.forEach(t => {
-                for (const [itemId, qty] of Object.entries(t.shipments)) {
-                    if(qty > 0) {
-                        const item = inventory.find(i => i.id === itemId);
-                        if(item) {
-                            const unitVol = item.totalVol / item.totalQty;
-                            const vol = qty * unitVol;
-                            fleetVol += vol;
-
-                            if(t.id === activeTruck.id) {
-                                truckQty += qty;
-                                truckVol += vol;
-                            }
-                        }
-                    }
+            // Her bir envanter kalemi için tek tek hesap yapıyoruz
+            inventory.forEach(item => {
+                const unitVol = item.totalVol / item.totalQty;
+                
+                // 1. Önceki kamyonların toplamı (Bu kalemde)
+                let previousShipped = 0;
+                for(let i=0; i < activeTruckIndex; i++) {
+                    previousShipped += (trucks[i].shipments[item.id] || 0);
                 }
+
+                // 2. Bu kamyonun başlangıç stoğu (Ana Stok)
+                const startStock = item.totalQty - previousShipped;
+                
+                // 3. Bu kamyonun yüklediği (Bu Araç)
+                const currentShipped = trucks[activeTruckIndex].shipments[item.id] || 0;
+
+                // 4. Kalan Stok (Kalan)
+                const endStock = startStock - currentShipped;
+
+                // Toplamlara Ekle
+                totalStartQty += startStock;
+                totalStartVol += (startStock * unitVol);
+
+                totalCurrentQty += currentShipped;
+                totalCurrentVol += (currentShipped * unitVol);
+
+                totalEndQty += endStock;
+                totalEndVol += (endStock * unitVol);
             });
 
-            document.getElementById('lbl-truck-qty').innerText = truckQty;
-            document.getElementById('lbl-truck-m3').innerText = truckVol.toFixed(3);
-            document.getElementById('lbl-fleet-m3').innerText = fleetVol.toFixed(3);
+            // Ekrana Yazdır
+            // 1. ANA STOK
+            document.getElementById('lbl-start-qty').innerText = totalStartQty;
+            document.getElementById('lbl-start-m3').innerText = totalStartVol.toFixed(3);
+
+            // 2. BU ARAÇ
+            document.getElementById('lbl-truck-qty').innerText = totalCurrentQty;
+            document.getElementById('lbl-truck-m3').innerText = totalCurrentVol.toFixed(3);
+
+            // 3. KALAN
+            document.getElementById('lbl-remain-qty').innerText = totalEndQty;
+            document.getElementById('lbl-remain-m3').innerText = totalEndVol.toFixed(3);
         }
 
-        // --- 5. VERİ YÖNETİMİ & EXCEL PARSE ---
+        // --- 5. EXCEL PARSE ---
         function parseExcelSmart(sheet) {
             const data = [];
             if(!sheet['!ref']) return {success:false, message:"Dosya boş."};
             const range = XLSX.utils.decode_range(sheet['!ref']);
             
-            // ADET Satırı Bul
             let adetRow = -1;
             for(let r=0; r<=Math.min(30, range.e.r); r++) {
                 let cnt = 0;
@@ -541,7 +556,6 @@
             }
             if(adetRow === -1) return {success:false, message: "'ADET' satırı bulunamadı."};
 
-            // Boyları Bul
             const headerRow = adetRow - 1;
             const colToLength = {};
             for(let c=0; c<=range.e.c; c++) {
@@ -552,7 +566,6 @@
                 }
             }
 
-            // Çap Sütunu Bul
             let diameterCol = 0; 
             let maxSeq = 0;
             for(let c=0; c<=3; c++) {
@@ -564,7 +577,6 @@
                 if(seq > maxSeq) { maxSeq = seq; diameterCol = c; }
             }
 
-            // Verileri Oku
             for(let r=adetRow+1; r<=range.e.r; r++) {
                 const diaCell = sheet[XLSX.utils.encode_cell({r, c:diameterCol})];
                 if(diaCell && !isNaN(diaCell.v)) {
@@ -583,10 +595,10 @@
                             let m3Vol = rawVol / 1000;
 
                             data.push({
-                                id: qtyAddr, // Unique ID
+                                id: qtyAddr, 
                                 diameter: diameter,
                                 length: length,
-                                totalQty: parseInt(qtyCell.v), // Sabit Orijinal Stok
+                                totalQty: parseInt(qtyCell.v), 
                                 totalVol: m3Vol,
                                 qtyAddr: qtyAddr
                             });
@@ -598,7 +610,7 @@
             return {success:true, data};
         }
 
-        // --- 6. EXPORT (GELİŞMİŞ ÇOKLU SAYFA) ---
+        // --- 6. EXPORT ---
         async function exportDataSafe() {
             if(!trucks.some(t => Object.values(t.shipments).some(v => v > 0))) {
                 alert("Henüz hiçbir kamyona yükleme yapılmadı."); return;
@@ -610,29 +622,23 @@
             setTimeout(async () => {
                 try {
                     const workbook = await XlsxPopulate.fromDataAsync(rawFileBuffer);
-                    const sheetOriginal = workbook.sheet(0); // Şablon sayfa
+                    const sheetOriginal = workbook.sheet(0); 
 
-                    // 1. Her Kamyon İçin Bir Sayfa Oluştur
+                    // 1. Her Kamyon İçin Bir Sayfa
                     for(let i=0; i<trucks.length; i++) {
                         const truck = trucks[i];
-                        // Şablondan yeni sayfa türet
-                        const truckSheet = workbook.cloneSheet(sheetOriginal, truck.name.replace(/\s/g, '_')); // Boşlukları alt çizgi yap
-                        
-                        // O kamyonun verilerini işle
+                        const truckSheet = workbook.cloneSheet(sheetOriginal, truck.name.replace(/\s/g, '_')); 
                         processSheet(truckSheet, 'truck', i);
                     }
 
-                    // 2. Kalan Stok Sayfası (Kalan_Liste)
+                    // 2. Kalan Stok Sayfası
                     const remainingSheet = workbook.cloneSheet(sheetOriginal, "Kalan_Stok");
                     processSheet(remainingSheet, 'remaining', null);
                     
-                    // 3. Orijinal sayfayı "Ozet_Icmal" yap ve temizle (veya silebiliriz ama kalsın)
-                    sheetOriginal.name("Ozet_Icmal");
-                    // Özeti basitçe temizleyelim şimdilik, detaylı icmal yapmıyoruz kod uzamasın diye
-                    // Sadece şablon olarak kalabilir veya gizleyebiliriz.
+                    // Orijinal sayfayı gizle
+                    sheetOriginal.name("Sablon");
                     sheetOriginal.hidden(true); 
 
-                    // İNDİRME
                     const blob = await workbook.outputAsync();
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement("a");
@@ -655,13 +661,11 @@
             }, 500);
         }
 
-        // Sayfa İşleme Motoru
         function processSheet(sheet, mode, truckIndex) {
             const activeRows = new Set();
             const sortedLengths = [...new Set(inventory.map(i => i.length))].sort((a,b) => a - b);
             const targetCols = [3, 5, 7, 9, 11, 13, 15];
 
-            // Boy -> Sütun Haritası
             const lengthToColMap = {};
             sortedLengths.forEach((len, index) => {
                 let colIdx = (index < targetCols.length) ? targetCols[index] : 15 + ((index - 6) * 2);
@@ -680,15 +684,14 @@
                 if(colIdx) sheet.row(7).cell(colIdx).value(len);
             });
 
-            // Verileri Yaz
+            // Veriler
             inventory.forEach(item => {
                 let qtyToWrite = 0;
 
                 if(mode === 'truck') {
-                    // Sadece o kamyonun yükü
                     qtyToWrite = trucks[truckIndex].shipments[item.id] || 0;
                 } else if (mode === 'remaining') {
-                    // Kalan = Toplam - Tüm Kamyonlar
+                    // Kalan = Orijinal Toplam - (Tüm Kamyonlar)
                     let totalShipped = 0;
                     trucks.forEach(t => totalShipped += (t.shipments[item.id] || 0));
                     qtyToWrite = item.totalQty - totalShipped;
@@ -705,7 +708,7 @@
                 }
             });
 
-            // Formatlama ve Gizleme
+            // Formatlama
             for(let r = 9; r <= 97; r++) {
                 for(let c = 3; c <= 17; c+=2) { 
                     const cell = sheet.row(r).cell(c);
@@ -728,13 +731,13 @@
         function saveSession() {
             if(!rawFileBuffer) return;
             const base64File = arrayBufferToBase64(rawFileBuffer);
-            localStorage.setItem('tsp_v2_file', base64File);
-            localStorage.setItem('tsp_v2_data', JSON.stringify({inventory, trucks, activeTruckIndex}));
+            localStorage.setItem('tsp_v21_file', base64File);
+            localStorage.setItem('tsp_v21_data', JSON.stringify({inventory, trucks, activeTruckIndex}));
         }
 
         function restoreSession() {
-            const savedData = localStorage.getItem('tsp_v2_data');
-            const savedFile = localStorage.getItem('tsp_v2_file');
+            const savedData = localStorage.getItem('tsp_v21_data');
+            const savedFile = localStorage.getItem('tsp_v21_file');
             if(!savedData || !savedFile) return;
 
             rawFileBuffer = base64ToArrayBuffer(savedFile);
@@ -747,7 +750,7 @@
         }
 
         function checkPreviousSession() {
-            if(localStorage.getItem('tsp_v2_data')) {
+            if(localStorage.getItem('tsp_v21_data')) {
                 document.getElementById('btn-restore').style.display = 'flex';
             }
         }
@@ -767,7 +770,6 @@
             checkPreviousSession();
         }
 
-        // Yardımcılar
         function arrayBufferToBase64(buffer) {
             let binary = '';
             const bytes = new Uint8Array(buffer);
