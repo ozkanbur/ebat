@@ -242,7 +242,7 @@
     <div id="footer" style="display: none;">
         <button class="btn-reset" onclick="resetApp()">↺ Yeni Dosya</button>
 
-        <button class="btn-finish" onclick="exportDataSafe()">💾 Nakledilecek Bilgileri Kaydet</button>
+        <button class="btn-finish" onclick="exportDataSafe()">💾 Raporu İndir</button>
     </div>
 
     <script>
@@ -274,7 +274,6 @@
                         inventory = result.data;
                         calculateInitials();
                         initApp();
-                        // Dosya yüklenince hemen kaydet
                         saveSession();
                     } else {
                         showError(result.message);
@@ -292,7 +291,7 @@
                 if(!confirm("Kamyona yüklenen veriler var. Kaydetmeden çıkmak istiyor musunuz?\n\n(Çıksanız bile 'Önceki Çalışmaya Devam Et' diyerek geri gelebilirsiniz.)")) return;
             }
             
-            // Sadece RAM'deki veriyi temizle, LocalStorage kalsın
+            // RAM'deki veriyi temizle
             inventory = [];
             rawFileBuffer = null;
             initialTotalQty = 0;
@@ -309,7 +308,6 @@
             document.getElementById('footer').style.display = 'none';
             document.getElementById('upload-overlay').style.display = 'flex';
             
-            // Ana ekrana dönünce kurtarma butonunu kontrol et
             checkPreviousSession();
         }
 
@@ -318,9 +316,7 @@
             try {
                 if(!rawFileBuffer || inventory.length === 0) return;
                 
-                // ArrayBuffer'ı string'e çevir
                 const base64File = arrayBufferToBase64(rawFileBuffer);
-                
                 localStorage.setItem('tsp_file', base64File);
                 localStorage.setItem('tsp_data', JSON.stringify(inventory));
                 localStorage.setItem('tsp_date', new Date().toISOString());
@@ -348,7 +344,6 @@
 
                 if(!savedData || !savedFile) return;
 
-                // Verileri geri yükle
                 rawFileBuffer = base64ToArrayBuffer(savedFile);
                 inventory = JSON.parse(savedData);
 
@@ -539,8 +534,6 @@
             }
             updateCellUI(item);
             updateDashboardDynamic();
-            
-            // HER DEĞİŞİKLİKTE KAYDET
             saveSession();
         }
 
@@ -576,44 +569,66 @@
             document.getElementById('lbl-remain-m3').innerText = remainVol.toFixed(3);
         }
 
-        // --- 7. EXPORT (GÜNCELLENDİ: TEMİZLİK DÜZELTİLDİ) ---
+        // --- 7. EXPORT (DÜZELTİLMİŞ VERSİYON) ---
         async function exportDataSafe() {
             if(!inventory.some(i => i.truckQty > 0)) {
                 alert("Kamyon boş! İşlem yapmadınız."); return;
             }
-            if(!confirm("Dosyalar indirilecek. Onaylıyor musunuz?")) return;
+            if(!confirm("Veriler tek bir Excel dosyası içinde 'Giden' ve 'Kalan' sayfaları olarak indirilecek.\nOnaylıyor musunuz?")) return;
 
             document.getElementById('loading-overlay').style.display = 'flex';
 
             setTimeout(async () => {
                 try {
-                    await createExcelWithFixedMapping('Giden_Liste', 'truck');
-                    await createExcelWithFixedMapping('Kalan_Liste', 'remain');
+                    // 1. Orijinal dosyayı yükle
+                    const workbook = await XlsxPopulate.fromDataAsync(rawFileBuffer);
                     
+                    // 2. İlk sayfayı al (Şablon)
+                    const sheetOriginal = workbook.sheet(0);
+
+                    // 3. Şablonu kullanarak "Kalan_Liste" adında YENİ bir sayfa kopyala
+                    // DÜZELTME: clone metodu workbook üzerinden çağrılmalı
+                    const sheetKalan = workbook.cloneSheet(sheetOriginal, "Kalan_Liste");
+                    
+                    // 4. Orijinal sayfanın adını "Giden_Liste" olarak değiştir
+                    sheetOriginal.name("Giden_Liste");
+
+                    // 5. Her iki sayfayı da işle
+                    processSheet(sheetOriginal, 'truck');
+                    processSheet(sheetKalan, 'remain');
+
+                    // 6. İndir
+                    const blob = await workbook.outputAsync();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    const date = new Date().toISOString().slice(0,10);
+                    a.href = url;
+                    a.download = `Sevkiyat_Raporu_${date}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+
                     document.getElementById('loading-overlay').style.display = 'none';
-                    alert("Dosyalar İndirildi!");
-                    
-                    if(confirm("İndirme tamamlandı. Yeni bir dosya ile çalışmak ister misiniz?")) {
+                    alert("Rapor başarıyla indirildi!");
+
+                    if(confirm("İşlem tamam. Yeni bir dosya ile çalışmak ister misiniz?")) {
                         resetApp();
                     }
 
                 } catch (err) {
                     console.error(err);
-                    alert("Hata: " + err.message);
+                    alert("Hata oluştu: " + err.message);
                     document.getElementById('loading-overlay').style.display = 'none';
                 }
             }, 500);
         }
 
-        async function createExcelWithFixedMapping(prefix, type) {
-            const workbook = await XlsxPopulate.fromDataAsync(rawFileBuffer);
-            const sheet = workbook.sheet(0); 
-
+        function processSheet(sheet, type) {
             const activeRows = new Set();
             const sortedLengths = [...new Set(inventory.map(i => i.length))].sort((a,b) => a - b);
-            const targetCols = [3, 5, 7, 9, 11, 13, 15]; // C, E, G, I, K, M, O (ADET SÜTUNLARI)
+            const targetCols = [3, 5, 7, 9, 11, 13, 15]; 
 
-            // Boy -> Sütun Haritası
             const lengthToColMap = {};
             sortedLengths.forEach((len, index) => {
                 let colIdx;
@@ -625,44 +640,28 @@
                 lengthToColMap[len] = colIdx;
             });
 
-            // ----------------------------------------------------
-            // 1. ADIM: TEMİZLİK (KRİTİK DÜZELTME)
-            // ----------------------------------------------------
-            // Sadece Adet sütunlarını (C, E, G...) temizle. 
-            // Döngüyü 17 (Q) sütununda bitir. 19 (S) sütununa ASLA dokunma.
-            // Satır aralığı: 9 - 97 (Dahil)
-            
-            // Başlıkları temizle (7. satır)
+            // 1. TEMİZLİK
             targetCols.forEach(c => sheet.row(7).cell(c).value(null));
-            
-            // Veri satırlarını temizle (9 - 97)
             for(let r = 9; r <= 97; r++) {
-                // Sütunlar: 3(C), 5(E) ... 17(Q). Sütun S (19) HARİÇ.
                 for(let c = 3; c <= 17; c+=2) { 
                     sheet.row(r).cell(c).value(null);
                 }
             }
 
-            // ----------------------------------------------------
-            // 2. ADIM: YENİ BAŞLIKLARI YAZ
-            // ----------------------------------------------------
+            // 2. BAŞLIKLAR
             sortedLengths.forEach((len, index) => {
                 const colIdx = lengthToColMap[len];
                 if(colIdx) sheet.row(7).cell(colIdx).value(len);
             });
 
-            // ----------------------------------------------------
-            // 3. ADIM: DOĞRU VERİLERİ YERİNE YAZ
-            // ----------------------------------------------------
+            // 3. VERİLER
             inventory.forEach(item => {
                 const targetQty = (type === 'truck') ? item.truckQty : item.currentQty;
-                
                 const rowNum = parseInt(item.qtyAddr.match(/\d+/)[0]);
                 const newColIdx = lengthToColMap[item.length];
 
                 if(newColIdx) {
                     const qtyCell = sheet.row(rowNum).cell(newColIdx);
-                    
                     if(targetQty > 0) {
                         qtyCell.value(targetQty);
                         qtyCell.style("numberFormat", "0"); 
@@ -671,14 +670,8 @@
                 }
             });
 
-            // ----------------------------------------------------
-            // 4. ADIM: FORMATLAMA VE GİZLEME
-            // ----------------------------------------------------
-            
-            // Genel Format: Boş adet hücreleri "0" formatında olsun
-            // Sütun aralığı yine 20'ye kadar ama S'yi koruyarak sadece boşlara bakıyoruz.
+            // 4. FORMATLAMA
             for(let r = 9; r <= 97; r++) {
-                // Sütun Q(17) son. S(19) formül.
                 for(let c = 3; c <= 17; c+=2) { 
                      const cell = sheet.row(r).cell(c);
                      if(cell.value() === undefined || cell.value() === null) {
@@ -687,8 +680,6 @@
                 }
             }
 
-            // Hacim Sütunları Formatı (D, F, H... - Çift sayılar)
-            // Sadece bu sütunlara binlik ayraç veriyoruz.
             const integerCols = [4, 6, 8, 10, 12, 14, 16, 20];
             for (let r = 9; r <= 98; r++) {
                 integerCols.forEach(c => {
@@ -697,7 +688,7 @@
             }
             sheet.cell("D102").style("numberFormat", "#,##0");
 
-            // Satır Gizleme
+            // GİZLEME VE PRINT AREA
             for (let r = 9; r <= 97; r++) {
                 if(!activeRows.has(r)) {
                     sheet.row(r).hidden(true);
@@ -706,24 +697,12 @@
                 }
             }
             
-            // Print Area & Sütun Gizleme
-            const sheetName = sheet.name() || "Sheet1";
-            workbook.definedName("Print_Area", `'${sheetName}'!$A$1:$T$104`);
+            const sheetName = sheet.name();
+            sheet.workbook().definedName("Print_Area", `'${sheetName}'!$A$1:$T$104`);
 
             for (let c = 21; c <= 50; c++) {
                 sheet.column(c).hidden(true);
             }
-
-            const blob = await workbook.outputAsync();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            const date = new Date().toISOString().slice(0,10);
-            a.href = url;
-            a.download = `${prefix}_${date}.xlsx`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
         }
 
         function showError(msg) {
