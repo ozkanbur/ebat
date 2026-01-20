@@ -320,7 +320,6 @@
         // ==========================================
         // AYARLAR - APPS SCRIPT URL BURAYA
         // ==========================================
-        // Buraya "Dağıt" dediğinde aldığın URL'yi yapıştır:
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx1Y9kGjv0aM_7L47RTooNONH63dLMUPZa1FeDK8-LnCTfR4YjJyqlfgfRLkPoerk58/exec"; 
 
         // Global Değişkenler
@@ -410,22 +409,35 @@
             });
         }
 
-        // Dosyayı İndir ve İşle (Apps Script'ten Base64 İster)
+        // Dosyayı İndir ve İşle (DÜZELTİLMİŞ VERSİYON - BASE64 CLEANER)
         async function downloadAndProcessDriveFile(fileId, fileName) {
             showCloudLoading(true);
             document.getElementById('cloud-title-text').innerText = "Dosya İndiriliyor...";
             
             try {
-                // Apps Script'e yeni bir komut gönderiyoruz: getFileContent
+                // Önce metin olarak al
                 const response = await fetch(`${SCRIPT_URL}?action=getFileContent&fileId=${fileId}`);
-                const result = await response.json();
+                const jsonText = await response.text(); 
+
+                // Google Hata Sayfası Kontrolü
+                if (jsonText.startsWith("<!DOCTYPE html>")) {
+                    throw new Error("Google API erişim izni hatası. Tarayıcıda Google hesabının açık olduğundan emin ol.");
+                }
+
+                const result = JSON.parse(jsonText);
 
                 if (result.error) {
                     throw new Error(result.error);
                 }
 
-                // Base64 string'i ArrayBuffer'a çevir
-                const base64 = result.data; // Apps Script'ten gelen veri
+                let base64 = result.data;
+                if (!base64) throw new Error("Dosya verisi boş geldi.");
+                
+                // --- KRİTİK DÜZELTME ---
+                // Boşlukları ve yeni satırları temizle
+                base64 = base64.replace(/\s/g, ''); 
+
+                // Decode
                 const binaryString = window.atob(base64);
                 const len = binaryString.length;
                 const bytes = new Uint8Array(len);
@@ -433,13 +445,13 @@
                     bytes[i] = binaryString.charCodeAt(i);
                 }
                 
-                // Ortak işleme fonksiyonuna gönder
+                // İşle
                 processExcelBuffer(bytes.buffer);
                 closeCloudMenu();
 
             } catch (error) {
                 console.error(error);
-                alert("Dosya indirilemedi! Apps Script kodunu güncellediğinden emin ol.\nHata: " + error.message);
+                alert("Dosya indirilemedi! \nHata: " + error.message);
             }
             showCloudLoading(false);
         }
