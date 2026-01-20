@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Tomruk Stok Pro v2.1</title>
+    <title>Tomruk Stok Pro v2.1 - Cloud</title>
 
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' style='background-color: white;'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
@@ -28,6 +28,7 @@
             --header-bg: #f8fafc;
             --tab-active-bg: #2563eb;
             --tab-inactive-bg: #e2e8f0;
+            --cloud-btn: #0ea5e9; /* Gökyüzü mavisi */
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
@@ -45,101 +46,106 @@
         /* --- GİRİŞ EKRANI --- */
         #upload-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.95);
+            background: rgba(255,255,255,0.98);
             z-index: 9999;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         .upload-box {
-            background: white; padding: 40px; border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center;
-            border: 2px dashed var(--accent); max-width: 400px; width: 90%;
-            display: flex; flex-direction: column; align-items: center;
+            background: white; padding: 30px; border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15); text-align: center;
+            border: 1px solid var(--border); max-width: 400px; width: 90%;
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
         }
-        .btn-upload {
-            background: var(--accent); color: white; padding: 12px 24px;
-            border-radius: 8px; font-weight: 600; cursor: pointer;
-            margin-top: 15px; display: inline-block; transition: 0.2s; width: 100%;
+        
+        .btn-upload-local {
+            background: var(--primary); color: white; padding: 14px 24px;
+            border-radius: 10px; font-weight: 600; cursor: pointer;
+            width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: 0.2s; border: none; font-size: 0.95rem;
         }
-        .btn-upload:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3); }
+        
+        .btn-upload-cloud {
+            background: var(--cloud-btn); color: white; padding: 14px 24px;
+            border-radius: 10px; font-weight: 600; cursor: pointer;
+            width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: 0.2s; border: none; font-size: 0.95rem;
+        }
+        
+        .btn-upload-local:hover, .btn-upload-cloud:hover { transform: translateY(-2px); filter: brightness(1.1); }
 
         #btn-restore {
             background: #fff; border: 2px solid var(--success); color: var(--success);
-            padding: 12px 24px; border-radius: 8px; font-weight: 700; cursor: pointer;
-            margin-top: 10px; width: 100%; display: none;
-            align-items: center; justify-content: center; gap: 8px;
+            padding: 12px 24px; border-radius: 10px; font-weight: 700; cursor: pointer;
+            width: 100%; display: none; align-items: center; justify-content: center; gap: 8px;
         }
+
+        /* --- CLOUD MODAL --- */
+        #cloud-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 10000;
+            display: none; align-items: center; justify-content: center;
+        }
+        .cloud-content {
+            background: white; width: 90%; max-width: 500px; height: 80vh;
+            border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .cloud-header {
+            padding: 15px; background: var(--header-bg); border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .cloud-title { font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 5px; }
+        .btn-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; }
+        
+        .cloud-body { flex: 1; overflow-y: auto; padding: 10px; }
+        
+        .cloud-item {
+            padding: 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px;
+            cursor: pointer; transition: 0.2s; border-radius: 8px;
+        }
+        .cloud-item:hover { background: #f0f9ff; }
+        .cloud-icon { font-size: 1.2rem; }
+        .cloud-text { font-weight: 500; color: #334155; }
+        
+        .cloud-loading { text-align: center; padding: 20px; color: #64748b; display: none; }
+        .btn-back-cloud { padding: 5px 10px; background: #e2e8f0; border-radius: 5px; cursor: pointer; border: none; font-size: 0.8rem; margin-right: 10px; display: none;}
 
         /* --- DASHBOARD & TABS --- */
         #top-area {
-            background: white;
-            border-bottom: 1px solid var(--border);
-            flex-shrink: 0;
-            z-index: 50;
-            display: none;
-            flex-direction: column;
+            background: white; border-bottom: 1px solid var(--border);
+            flex-shrink: 0; z-index: 50; display: none; flex-direction: column;
         }
 
         #dashboard {
-            padding: 8px 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: stretch; /* Yüksekliği eşitle */
-            height: auto;
-            min-height: 65px;
-            gap: 5px;
+            padding: 8px 10px; display: flex; justify-content: space-between;
+            align-items: stretch; height: auto; min-height: 65px; gap: 5px;
         }
 
-        /* Sekme Stilleri */
         #tab-container {
-            display: flex;
-            gap: 5px;
-            padding: 0 10px 10px 10px;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
+            display: flex; gap: 5px; padding: 0 10px 10px 10px; overflow-x: auto;
+            -webkit-overflow-scrolling: touch; scrollbar-width: none;
         }
         #tab-container::-webkit-scrollbar { display: none; }
 
         .tab-btn {
-            background: var(--tab-inactive-bg);
-            color: #64748b;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            white-space: nowrap;
-            cursor: pointer;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 5px;
+            background: var(--tab-inactive-bg); color: #64748b; border: none;
+            padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
+            white-space: nowrap; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 5px;
         }
-        .tab-btn.active {
-            background: var(--tab-active-bg);
-            color: white;
-            box-shadow: 0 2px 5px rgba(37, 99, 235, 0.3);
-        }
+        .tab-btn.active { background: var(--tab-active-bg); color: white; box-shadow: 0 2px 5px rgba(37, 99, 235, 0.3); }
         .tab-add {
-            background: white;
-            border: 1px dashed var(--accent);
-            color: var(--accent);
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            flex-shrink: 0;
+            background: white; border: 1px dashed var(--accent); color: var(--accent);
+            width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; flex-shrink: 0;
         }
 
         /* İstatistik Kutuları */
         .stat-group { display: flex; gap: 8px; width: 100%; justify-content: space-between; }
         .stat-item { 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            flex: 1; 
-            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 4px;
+            flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 4px;
         }
         .stat-title { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 800; color: #64748b; margin-bottom: 4px; text-align: center; }
         .stat-values { 
@@ -153,22 +159,16 @@
 
         /* --- TABLO ALANI --- */
         #table-container {
-            flex: 1; 
-            overflow: auto; 
-            position: relative; 
-            padding: 0; 
-            background: #e2e8f0;
+            flex: 1; overflow: auto; position: relative; padding: 0; background: #e2e8f0;
             -webkit-overflow-scrolling: touch;
         }
         table { border-collapse: separate; border-spacing: 0; width: 100%; background: white; padding-bottom: 20px; }
         th, td { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 8px; text-align: center; vertical-align: middle; background: white; }
 
-        /* Sticky Headers */
         thead th { position: sticky; top: 0; z-index: 10; background: var(--header-bg); color: var(--primary); font-weight: 700; height: 40px; box-shadow: 0 1px 0 var(--border); }
         tbody th { position: sticky; left: 0; z-index: 20; background: var(--header-bg); color: var(--primary); font-weight: 700; min-width: 60px; box-shadow: 1px 0 0 var(--border); }
         thead th:first-child { position: sticky; left: 0; top: 0; z-index: 30; background: var(--primary); color: white; border-right: 1px solid #334155; border-bottom: 1px solid #334155; }
 
-        /* Hücre İçeriği */
         .cell-controls { display: flex; align-items: center; justify-content: center; gap: 4px; }
         .btn-ctrl { width: 35px; height: 35px; border-radius: 8px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: 0.1s; user-select: none; font-size: 1.2rem; }
         .btn-ctrl:active { background: #e2e8f0; transform: scale(0.95); }
@@ -190,17 +190,10 @@
 
         /* --- FOOTER --- */
         #footer {
-            background: white; 
-            border-top: 1px solid var(--border); 
-            padding: 10px 20px;
-            display: flex; 
-            justify-content: space-between;
-            align-items: center; 
-            flex-shrink: 0; 
-            height: auto;
-            min-height: 70px;
-            padding-bottom: max(10px, env(safe-area-inset-bottom));
-            z-index: 100;
+            background: white; border-top: 1px solid var(--border); padding: 10px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-shrink: 0; height: auto; min-height: 70px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom)); z-index: 100;
         }
         .btn-finish {
             background: var(--primary); color: white; padding: 12px 20px; border-radius: 8px; border: none;
@@ -217,11 +210,33 @@
             position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7);
             z-index: 10000; display: none; align-items: center; justify-content: center; color: white; font-weight: 600; flex-direction: column; gap: 15px;
         }
+        .spinner {
+            width: 40px; height: 40px; border: 4px solid #fff; border-top: 4px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         .error-msg { color: var(--danger); font-size: 0.9rem; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
+
+    <div id="cloud-modal">
+        <div class="cloud-content">
+            <div class="cloud-header">
+                <div class="cloud-title">
+                    <button id="cloud-back-btn" class="btn-back-cloud" onclick="fetchYears()">⬅️ Geri</button>
+                    <span id="cloud-title-text">Yıl Seçimi</span>
+                </div>
+                <button class="btn-close" onclick="closeCloudMenu()">×</button>
+            </div>
+            <div id="cloud-list" class="cloud-body">
+                </div>
+            <div id="cloud-loader" class="cloud-loading">
+                <div class="spinner" style="border-color: #3b82f6; border-top-color: transparent; margin: 0 auto 10px auto;"></div>
+                Veriler Getiriliyor...
+            </div>
+        </div>
+    </div>
 
     <div id="upload-overlay">
         <div class="upload-box">
@@ -229,27 +244,31 @@
             <h2 style="color: var(--primary); margin-bottom: 5px;">Tomruk Stok Pro</h2>
             <div style="font-size:0.8rem; color: var(--accent); font-weight:600; margin-bottom: 10px;">Zincirleme Stok Sistemi v2.1</div>
             
-            <p style="color: #64748b; font-size: 0.9rem; line-height: 1.5;">
+            <p style="color: #64748b; font-size: 0.9rem; line-height: 1.5; margin-bottom: 20px;">
                 <strong>Özkan KANBUR</strong><br>
-                Orman Endüstri Mühendisi<br>
-                Türk Mühendisliğinin Dijital Gücü
+                Orman Endüstri Mühendisi
             </p>
 
             <button id="btn-restore" onclick="restoreSession()">
                 ⏮️ Önceki Çalışmaya Devam Et
             </button>
 
-            <label class="btn-upload">
-                📂 Excel Dosyası Seç
+            <button class="btn-upload-cloud" onclick="openCloudMenu()">
+                ☁️ Buluttan Yükle (Drive)
+            </button>
+
+            <label class="btn-upload-local">
+                📂 Telefondan/PC'den Seç
                 <input type="file" id="file-input" hidden accept=".xlsx, .xls" onchange="handleFileUpload(event)">
             </label>
+            
             <div id="error-box" class="error-msg"></div>
         </div>
     </div>
 
     <div id="loading-overlay">
-        <div>⏳</div>
-        <div>İşlem Yapılıyor...</div>
+        <div class="spinner"></div>
+        <div id="loading-text">İşlem Yapılıyor...</div>
     </div>
 
     <div id="top-area">
@@ -298,6 +317,13 @@
     </div>
 
     <script>
+        // ==========================================
+        // AYARLAR - APPS SCRIPT URL BURAYA
+        // ==========================================
+        // Buraya "Dağıt" dediğinde aldığın URL'yi yapıştır:
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlUv6-20w7xltbVFWpDG0x-8F61_sXoaNvkSK5-Nrt5yK-P2anaEZQhnLxjt3pNBrq/exec"; 
+
+        // Global Değişkenler
         let rawFileBuffer = null; 
         let inventory = [];
         let trucks = []; 
@@ -307,41 +333,162 @@
             checkPreviousSession();
         });
 
-        // --- 1. DOSYA OKUMA ---
+        // ==========================================
+        // 1. CLOUD / DRIVE İŞLEMLERİ
+        // ==========================================
+        function openCloudMenu() {
+            if(SCRIPT_URL.includes("BURAYA_")) {
+                alert("Lütfen kodun içindeki SCRIPT_URL kısmına kendi Apps Script adresini yapıştır.");
+                return;
+            }
+            document.getElementById('cloud-modal').style.display = 'flex';
+            fetchYears();
+        }
+
+        function closeCloudMenu() {
+            document.getElementById('cloud-modal').style.display = 'none';
+        }
+
+        function showCloudLoading(show) {
+            document.getElementById('cloud-loader').style.display = show ? 'block' : 'none';
+            document.getElementById('cloud-list').style.display = show ? 'none' : 'block';
+        }
+
+        // Yılları (Klasörleri) Getir
+        async function fetchYears() {
+            showCloudLoading(true);
+            document.getElementById('cloud-back-btn').style.display = 'none';
+            document.getElementById('cloud-title-text').innerText = "Yıl Seçimi";
+            
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=getYears`);
+                const folders = await response.json();
+                renderCloudList(folders, 'year');
+            } catch (error) {
+                alert("Bağlantı hatası: " + error.message);
+            }
+            showCloudLoading(false);
+        }
+
+        // Dosyaları Getir
+        async function fetchFiles(folderId, yearName) {
+            showCloudLoading(true);
+            document.getElementById('cloud-back-btn').style.display = 'inline-block';
+            document.getElementById('cloud-title-text').innerText = yearName;
+
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=getFiles&folderId=${folderId}`);
+                const files = await response.json();
+                renderCloudList(files, 'file');
+            } catch (error) {
+                alert("Dosyalar alınamadı.");
+            }
+            showCloudLoading(false);
+        }
+
+        function renderCloudList(items, type) {
+            const container = document.getElementById('cloud-list');
+            container.innerHTML = '';
+            
+            if(items.length === 0) {
+                container.innerHTML = '<div style="padding:20px; text-align:center; color:#999;">Burada hiç dosya yok.</div>';
+                return;
+            }
+
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'cloud-item';
+                
+                if (type === 'year') {
+                    div.innerHTML = `<span class="cloud-icon">📁</span> <span class="cloud-text">${item.name}</span>`;
+                    div.onclick = () => fetchFiles(item.id, item.name);
+                } else {
+                    div.innerHTML = `<span class="cloud-icon">📄</span> <span class="cloud-text">${item.name}</span>`;
+                    div.onclick = () => downloadAndProcessDriveFile(item.id, item.name);
+                }
+                container.appendChild(div);
+            });
+        }
+
+        // Dosyayı İndir ve İşle (Apps Script'ten Base64 İster)
+        async function downloadAndProcessDriveFile(fileId, fileName) {
+            showCloudLoading(true);
+            document.getElementById('cloud-title-text').innerText = "Dosya İndiriliyor...";
+            
+            try {
+                // Apps Script'e yeni bir komut gönderiyoruz: getFileContent
+                const response = await fetch(`${SCRIPT_URL}?action=getFileContent&fileId=${fileId}`);
+                const result = await response.json();
+
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                // Base64 string'i ArrayBuffer'a çevir
+                const base64 = result.data; // Apps Script'ten gelen veri
+                const binaryString = window.atob(base64);
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                
+                // Ortak işleme fonksiyonuna gönder
+                processExcelBuffer(bytes.buffer);
+                closeCloudMenu();
+
+            } catch (error) {
+                console.error(error);
+                alert("Dosya indirilemedi! Apps Script kodunu güncellediğinden emin ol.\nHata: " + error.message);
+            }
+            showCloudLoading(false);
+        }
+
+
+        // ==========================================
+        // 2. DOSYA İŞLEME MERKEZİ (Hem Yerel Hem Cloud)
+        // ==========================================
+        
+        // Yerel Dosya Seçimi
         function handleFileUpload(e) {
             const file = e.target.files[0];
             if(!file) return;
 
             const reader = new FileReader();
             reader.onload = (e) => {
-                try {
-                    rawFileBuffer = e.target.result; 
-                    const data = new Uint8Array(rawFileBuffer);
-                    const wb = XLSX.read(data, {type: 'array'});
-                    const sheet = wb.Sheets[wb.SheetNames[0]];
-                    
-                    const result = parseExcelSmart(sheet);
-                    if(result.success) {
-                        inventory = result.data;
-                        
-                        // İlk Kamyonu Oluştur
-                        trucks = [{
-                            id: Date.now(),
-                            name: "KAMYON 1",
-                            shipments: {} 
-                        }];
-                        activeTruckIndex = 0;
-
-                        initApp();
-                        saveSession();
-                    } else {
-                        showError(result.message);
-                    }
-                } catch (err) {
-                    showError(err.message);
-                }
+                processExcelBuffer(e.target.result);
             };
             reader.readAsArrayBuffer(file);
+        }
+
+        // Ana İşleme Fonksiyonu
+        function processExcelBuffer(buffer) {
+            try {
+                rawFileBuffer = buffer; 
+                const data = new Uint8Array(rawFileBuffer);
+                const wb = XLSX.read(data, {type: 'array'});
+                const sheet = wb.Sheets[wb.SheetNames[0]];
+                
+                const result = parseExcelSmart(sheet);
+                if(result.success) {
+                    inventory = result.data;
+                    
+                    // İlk Kamyonu Oluştur
+                    trucks = [{
+                        id: Date.now(),
+                        name: "KAMYON 1",
+                        shipments: {} 
+                    }];
+                    activeTruckIndex = 0;
+
+                    initApp();
+                    saveSession();
+                } else {
+                    showError(result.message);
+                }
+            } catch (err) {
+                showError("Excel okunamadı: " + err.message);
+            }
         }
 
         function initApp() {
@@ -354,7 +501,9 @@
             updateDashboard();
         }
 
-        // --- 2. SEKME VE NAVİGASYON ---
+        // ==========================================
+        // 3. UI RENDER & LOGIC (Eski Kodlar Aynen Korundu)
+        // ==========================================
         function renderTabs() {
             const container = document.getElementById('tab-container');
             container.innerHTML = '';
@@ -392,7 +541,6 @@
             saveSession();
         }
 
-        // --- 3. TABLO RENDER (ZİNCİRLEME MANTIK) ---
         function renderTable() {
             const thead = document.querySelector('#matrix-table thead');
             const tbody = document.querySelector('#matrix-table tbody');
@@ -414,19 +562,13 @@
                 lengths.forEach(len => {
                     const item = itemsInRow.find(i => i.length === len);
                     if(item) {
-                        // ZİNCİRLEME HESAP:
-                        // Bu kamyondan ÖNCEKİ tüm kamyonların toplamını bul
                         let previousLoad = 0;
                         for(let i=0; i < activeTruckIndex; i++) {
                             previousLoad += (trucks[i].shipments[item.id] || 0);
                         }
 
-                        // Bu kamyonun "Ana Stok"u = Orijinal Stok - Öncekiler
                         const limitForThisTruck = item.totalQty - previousLoad;
-                        
-                        // Bu kamyona yüklenen
                         const currentTruckLoad = trucks[activeTruckIndex].shipments[item.id] || 0;
-                        
                         const unitVol = item.totalVol / item.totalQty;
                         const truckVol = currentTruckLoad * unitVol;
 
@@ -454,7 +596,6 @@
             tbody.innerHTML = bodyHTML;
         }
 
-        // --- 4. ETKİLEŞİM ---
         function changeQty(itemId, delta) {
             const item = inventory.find(i => i.id === itemId);
             if(!item) return;
@@ -462,7 +603,6 @@
             const activeTruck = trucks[activeTruckIndex];
             const currentLoad = activeTruck.shipments[itemId] || 0;
 
-            // Limit kontrolü için öncekileri hesapla
             let previousLoad = 0;
             for(let i=0; i < activeTruckIndex; i++) {
                 previousLoad += (trucks[i].shipments[itemId] || 0);
@@ -483,63 +623,38 @@
             updateDashboard();
         }
 
-        // --- DASHBOARD GÜNCELLEME (YENİ MANTIK) ---
         function updateDashboard() {
-            // Global Değişkenler
-            let totalStartQty = 0;
-            let totalStartVol = 0;
-            
-            let totalCurrentQty = 0;
-            let totalCurrentVol = 0;
-            
-            let totalEndQty = 0;
-            let totalEndVol = 0;
+            let totalStartQty = 0; let totalStartVol = 0;
+            let totalCurrentQty = 0; let totalCurrentVol = 0;
+            let totalEndQty = 0; let totalEndVol = 0;
 
-            // Her bir envanter kalemi için tek tek hesap yapıyoruz
             inventory.forEach(item => {
                 const unitVol = item.totalVol / item.totalQty;
-                
-                // 1. Önceki kamyonların toplamı (Bu kalemde)
                 let previousShipped = 0;
                 for(let i=0; i < activeTruckIndex; i++) {
                     previousShipped += (trucks[i].shipments[item.id] || 0);
                 }
 
-                // 2. Bu kamyonun başlangıç stoğu (Ana Stok)
                 const startStock = item.totalQty - previousShipped;
-                
-                // 3. Bu kamyonun yüklediği (Bu Araç)
                 const currentShipped = trucks[activeTruckIndex].shipments[item.id] || 0;
-
-                // 4. Kalan Stok (Kalan)
                 const endStock = startStock - currentShipped;
 
-                // Toplamlara Ekle
                 totalStartQty += startStock;
                 totalStartVol += (startStock * unitVol);
-
                 totalCurrentQty += currentShipped;
                 totalCurrentVol += (currentShipped * unitVol);
-
                 totalEndQty += endStock;
                 totalEndVol += (endStock * unitVol);
             });
 
-            // Ekrana Yazdır
-            // 1. ANA STOK
             document.getElementById('lbl-start-qty').innerText = totalStartQty;
             document.getElementById('lbl-start-m3').innerText = totalStartVol.toFixed(3);
-
-            // 2. BU ARAÇ
             document.getElementById('lbl-truck-qty').innerText = totalCurrentQty;
             document.getElementById('lbl-truck-m3').innerText = totalCurrentVol.toFixed(3);
-
-            // 3. KALAN
             document.getElementById('lbl-remain-qty').innerText = totalEndQty;
             document.getElementById('lbl-remain-m3').innerText = totalEndVol.toFixed(3);
         }
 
-        // --- 5. EXCEL PARSE ---
         function parseExcelSmart(sheet) {
             const data = [];
             if(!sheet['!ref']) return {success:false, message:"Dosya boş."};
@@ -610,7 +725,6 @@
             return {success:true, data};
         }
 
-        // --- 6. EXPORT ---
         async function exportDataSafe() {
             if(!trucks.some(t => Object.values(t.shipments).some(v => v > 0))) {
                 alert("Henüz hiçbir kamyona yükleme yapılmadı."); return;
@@ -618,24 +732,22 @@
             if(!confirm("Tüm kamyonlar ve kalan stok ayrı sekmeler halinde tek dosyaya indirilecek. Onaylıyor musunuz?")) return;
 
             document.getElementById('loading-overlay').style.display = 'flex';
+            document.getElementById('loading-text').innerText = "Rapor Hazırlanıyor...";
 
             setTimeout(async () => {
                 try {
                     const workbook = await XlsxPopulate.fromDataAsync(rawFileBuffer);
                     const sheetOriginal = workbook.sheet(0); 
 
-                    // 1. Her Kamyon İçin Bir Sayfa
                     for(let i=0; i<trucks.length; i++) {
                         const truck = trucks[i];
                         const truckSheet = workbook.cloneSheet(sheetOriginal, truck.name.replace(/\s/g, '_')); 
                         processSheet(truckSheet, 'truck', i);
                     }
 
-                    // 2. Kalan Stok Sayfası
                     const remainingSheet = workbook.cloneSheet(sheetOriginal, "Kalan_Stok");
                     processSheet(remainingSheet, 'remaining', null);
                     
-                    // Orijinal sayfayı gizle
                     sheetOriginal.name("Sablon");
                     sheetOriginal.hidden(true); 
 
@@ -672,26 +784,21 @@
                 lengthToColMap[len] = colIdx;
             });
 
-            // Temizlik
             targetCols.forEach(c => sheet.row(7).cell(c).value(null));
             for(let r = 9; r <= 97; r++) {
                 for(let c = 3; c <= 17; c+=2) sheet.row(r).cell(c).value(null);
             }
 
-            // Başlıklar
             sortedLengths.forEach((len, index) => {
                 const colIdx = lengthToColMap[len];
                 if(colIdx) sheet.row(7).cell(colIdx).value(len);
             });
 
-            // Veriler
             inventory.forEach(item => {
                 let qtyToWrite = 0;
-
                 if(mode === 'truck') {
                     qtyToWrite = trucks[truckIndex].shipments[item.id] || 0;
                 } else if (mode === 'remaining') {
-                    // Kalan = Orijinal Toplam - (Tüm Kamyonlar)
                     let totalShipped = 0;
                     trucks.forEach(t => totalShipped += (t.shipments[item.id] || 0));
                     qtyToWrite = item.totalQty - totalShipped;
@@ -708,7 +815,6 @@
                 }
             });
 
-            // Formatlama
             for(let r = 9; r <= 97; r++) {
                 for(let c = 3; c <= 17; c+=2) { 
                     const cell = sheet.row(r).cell(c);
@@ -727,7 +833,6 @@
             for (let c = 21; c <= 50; c++) sheet.column(c).hidden(true);
         }
 
-        // --- 7. KAYIT & SIFIRLAMA ---
         function saveSession() {
             if(!rawFileBuffer) return;
             const base64File = arrayBufferToBase64(rawFileBuffer);
