@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Tomruk Stok Pro v3.1</title>
+    <title>Tomruk Stok Pro v3.2</title>
 
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' style='background-color: white;'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
@@ -86,7 +86,7 @@
             display: none; align-items: center; justify-content: center;
         }
         .cloud-content {
-            background: white; width: 90%; max-width: 500px; height: 85vh; /* Yükseklik biraz arttı */
+            background: white; width: 90%; max-width: 500px; height: 85vh;
             border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
             animation: slideUp 0.3s ease;
         }
@@ -99,9 +99,8 @@
         .cloud-title { font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 5px; }
         .btn-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; }
         
-        /* ARAMA KUTUSU ALANI */
         #cloud-search-area {
-            padding: 10px; background: white; border-bottom: 1px solid #eee; display: none; /* Başlangıçta gizli */
+            padding: 10px; background: white; border-bottom: 1px solid #eee; display: none;
         }
         #search-input {
             width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1;
@@ -121,6 +120,46 @@
         
         .cloud-loading { text-align: center; padding: 20px; color: #64748b; display: none; }
         .btn-back-cloud { padding: 5px 10px; background: #e2e8f0; border-radius: 5px; cursor: pointer; border: none; font-size: 0.8rem; margin-right: 10px; display: none;}
+
+        /* --- ARAÇ BİLGİSİ MODAL --- */
+        #truck-info-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 10001;
+            display: none; align-items: center; justify-content: center;
+        }
+        .truck-info-content {
+            background: white; width: 90%; max-width: 400px;
+            border-radius: 12px; padding: 25px; animation: slideUp 0.3s ease;
+        }
+        .truck-info-title {
+            font-size: 1.3rem; font-weight: 700; color: var(--primary); margin-bottom: 20px; text-align: center;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-label {
+            display: block; font-weight: 600; color: #475569; margin-bottom: 5px; font-size: 0.9rem;
+        }
+        .input-field {
+            width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;
+            font-size: 1rem; outline: none; transition: 0.2s;
+        }
+        .input-field:focus {
+            border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .btn-group {
+            display: flex; gap: 10px; margin-top: 20px;
+        }
+        .btn-cancel {
+            flex: 1; padding: 12px; background: #f1f5f9; color: #64748b; border: 1px solid var(--border);
+            border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;
+        }
+        .btn-save {
+            flex: 1; padding: 12px; background: var(--success); color: white;
+            border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; border: none;
+        }
+        .btn-cancel:hover { background: #e2e8f0; }
+        .btn-save:hover { background: #15803d; }
 
         /* --- DASHBOARD & TABS --- */
         #top-area {
@@ -151,7 +190,6 @@
             font-size: 1.2rem; flex-shrink: 0;
         }
 
-        /* İstatistik Kutuları */
         .stat-group { display: flex; gap: 8px; width: 100%; justify-content: space-between; }
         .stat-item { 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -215,7 +253,6 @@
         }
         .btn-finish:hover { background: #0f172a; }
 
-        /* Loading Spinner */
         #loading-overlay {
             position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7);
             z-index: 10000; display: none; align-items: center; justify-content: center; color: white; font-weight: 600; flex-direction: column; gap: 15px;
@@ -244,11 +281,29 @@
                 <input type="text" id="search-input" placeholder="🔍 İstif No Ara (örn: 1234)" inputmode="numeric">
             </div>
 
-            <div id="cloud-list" class="cloud-body">
-                </div>
+            <div id="cloud-list" class="cloud-body"></div>
             <div id="cloud-loader" class="cloud-loading">
                 <div class="spinner" style="border-color: #3b82f6; border-top-color: transparent; margin: 0 auto 10px auto;"></div>
                 Veriler Getiriliyor...
+            </div>
+        </div>
+    </div>
+
+    <!-- ARAÇ BİLGİSİ MODAL -->
+    <div id="truck-info-modal">
+        <div class="truck-info-content">
+            <div class="truck-info-title">🚛 Yeni Araç Bilgileri</div>
+            <div class="input-group">
+                <label class="input-label">Plaka Numarası *</label>
+                <input type="text" id="input-plate" class="input-field" placeholder="34 ABC 123" maxlength="15">
+            </div>
+            <div class="input-group">
+                <label class="input-label">Şoför Adı Soyadı *</label>
+                <input type="text" id="input-driver" class="input-field" placeholder="Ahmet Yılmaz" maxlength="50">
+            </div>
+            <div class="btn-group">
+                <button class="btn-cancel" onclick="cancelTruckInfo()">İptal</button>
+                <button class="btn-save" onclick="saveTruckInfo()">Kaydet</button>
             </div>
         </div>
     </div>
@@ -257,7 +312,7 @@
         <div class="upload-box">
             <div style="font-size: 3rem; margin-bottom: 10px;">🌲</div>
             <h2 style="color: var(--primary); margin-bottom: 5px;">Tomruk Stok Pro</h2>
-            <div style="font-size:0.8rem; color: var(--accent); font-weight:600; margin-bottom: 10px;">Türk Mühendisliğinin Dijital Gücü v3.1</div>
+            <div style="font-size:0.8rem; color: var(--accent); font-weight:600; margin-bottom: 10px;">Türk Mühendisliğinin Dijital Gücü v3.2</div>
             
             <p style="color: #64748b; font-size: 0.9rem; line-height: 1.5; margin-bottom: 20px;">
                 <strong>Özkan KANBUR</strong><br>
@@ -315,8 +370,7 @@
             </div>
         </div>
         
-        <div id="tab-container">
-            </div>
+        <div id="tab-container"></div>
     </div>
 
     <div id="table-container">
@@ -342,18 +396,17 @@
         let inventory = [];
         let trucks = []; 
         let activeTruckIndex = 0;
+        let istifNo = ""; // D5 hücresinden gelecek İstif Numarası
 
         window.addEventListener('DOMContentLoaded', () => {
             checkPreviousSession();
             
-            // ARAMA KUTUSU DİNLEYİCİSİ
             document.getElementById('search-input').addEventListener('input', function(e) {
                 const searchText = e.target.value.toLowerCase();
                 const items = document.querySelectorAll('.cloud-item');
                 
                 items.forEach(item => {
                     const text = item.innerText.toLowerCase();
-                    // İçinde geçiyorsa göster, geçmiyorsa gizle
                     if(text.includes(searchText)) {
                         item.style.display = 'flex';
                     } else {
@@ -364,7 +417,7 @@
         });
 
         // ==========================================
-        // 1. CLOUD / DRIVE İŞLEMLERİ
+        // CLOUD / DRIVE İŞLEMLERİ
         // ==========================================
         function openCloudMenu() {
             if(SCRIPT_URL.includes("BURAYA_")) {
@@ -384,15 +437,12 @@
             document.getElementById('cloud-list').style.display = show ? 'none' : 'block';
         }
 
-        // Yılları (Klasörleri) Getir
         async function fetchYears() {
             showCloudLoading(true);
             document.getElementById('cloud-back-btn').style.display = 'none';
             document.getElementById('cloud-title-text').innerText = "Yıl Seçimi";
-            
-            // Yıl seçim ekranında arama kutusunu gizle
             document.getElementById('cloud-search-area').style.display = 'none';
-            document.getElementById('search-input').value = ''; // Temizle
+            document.getElementById('search-input').value = '';
             
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=getYears`);
@@ -404,15 +454,12 @@
             showCloudLoading(false);
         }
 
-        // Dosyaları Getir
         async function fetchFiles(folderId, yearName) {
             showCloudLoading(true);
             document.getElementById('cloud-back-btn').style.display = 'inline-block';
             document.getElementById('cloud-title-text').innerText = yearName;
-
-            // Dosya listesi gelince arama kutusunu GÖSTER
             document.getElementById('cloud-search-area').style.display = 'block';
-            document.getElementById('search-input').value = ''; // Arama kutusunu sıfırla
+            document.getElementById('search-input').value = '';
 
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=getFiles&folderId=${folderId}`);
@@ -441,7 +488,6 @@
                     div.innerHTML = `<span class="cloud-icon">📁</span> <span class="cloud-text">${item.name}</span>`;
                     div.onclick = () => fetchFiles(item.id, item.name);
                 } else {
-                    // Dosyalar için
                     div.innerHTML = `<span class="cloud-icon">📄</span> <span class="cloud-text">${item.name}</span>`;
                     div.onclick = () => downloadAndProcessDriveFile(item.id, item.name);
                 }
@@ -449,11 +495,10 @@
             });
         }
 
-        // Dosyayı İndir ve İşle
         async function downloadAndProcessDriveFile(fileId, fileName) {
             showCloudLoading(true);
             document.getElementById('cloud-title-text').innerText = "Dosya İndiriliyor...";
-            document.getElementById('cloud-search-area').style.display = 'none'; // İnerken aramayı gizle
+            document.getElementById('cloud-search-area').style.display = 'none';
             
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=getFileContent&fileId=${fileId}`);
@@ -492,7 +537,7 @@
         }
 
         // ==========================================
-        // 2. DOSYA İŞLEME MERKEZİ (Hem Yerel Hem Cloud)
+        // DOSYA İŞLEME MERKEZİ
         // ==========================================
         function handleFileUpload(e) {
             const file = e.target.files[0];
@@ -512,13 +557,22 @@
                 const wb = XLSX.read(data, {type: 'array'});
                 const sheet = wb.Sheets[wb.SheetNames[0]];
                 
+                // D5 hücresinden İstif No oku
+                const d5Cell = sheet['D5'];
+                if(d5Cell && d5Cell.v) {
+                    istifNo = String(d5Cell.v).trim();
+                } else {
+                    istifNo = "Istif_" + Date.now(); // Yoksa varsayılan
+                }
+                
                 const result = parseExcelSmart(sheet);
                 if(result.success) {
                     inventory = result.data;
-                    trucks = [{ id: Date.now(), name: "KAMYON 1", shipments: {} }];
+                    trucks = [];
                     activeTruckIndex = 0;
-                    initApp();
-                    saveSession();
+                    
+                    // İlk aracı otomatik ekle
+                    showTruckInfoModal();
                 } else {
                     showError(result.message);
                 }
@@ -537,7 +591,63 @@
         }
 
         // ==========================================
-        // 3. UI RENDER & LOGIC (Standart Fonksiyonlar)
+        // ARAÇ BİLGİSİ MODAL İŞLEMLERİ
+        // ==========================================
+        function showTruckInfoModal() {
+            document.getElementById('input-plate').value = '';
+            document.getElementById('input-driver').value = '';
+            document.getElementById('truck-info-modal').style.display = 'flex';
+            setTimeout(() => document.getElementById('input-plate').focus(), 300);
+        }
+
+        function cancelTruckInfo() {
+            document.getElementById('truck-info-modal').style.display = 'none';
+            
+            // Eğer hiç araç yoksa upload ekranına dön
+            if(trucks.length === 0) {
+                resetApp();
+            }
+        }
+
+        function saveTruckInfo() {
+            const plate = document.getElementById('input-plate').value.trim().toUpperCase();
+            const driver = document.getElementById('input-driver').value.trim();
+            
+            if(!plate || !driver) {
+                alert("Lütfen plaka ve şoför bilgilerini eksiksiz girin!");
+                return;
+            }
+            
+            // Plaka formatını kontrol et (Türkiye standart)
+            const plateRegex = /^[0-9]{2}\s?[A-Z]{1,3}\s?[0-9]{1,4}$/;
+            if(!plateRegex.test(plate)) {
+                alert("Geçersiz plaka formatı! Örnek: 34 ABC 123");
+                return;
+            }
+            
+            // Yeni araç ekle
+            trucks.push({
+                id: Date.now(),
+                plate: plate,
+                driver: driver,
+                shipments: {}
+            });
+            
+            document.getElementById('truck-info-modal').style.display = 'none';
+            
+            // İlk araç eklendiyse uygulamayı başlat
+            if(trucks.length === 1) {
+                initApp();
+            } else {
+                // Sonraki araçlar için tab'ı değiştir
+                switchTab(trucks.length - 1);
+            }
+            
+            saveSession();
+        }
+
+        // ==========================================
+        // UI RENDER & LOGIC
         // ==========================================
         function renderTabs() {
             const container = document.getElementById('tab-container');
@@ -545,7 +655,7 @@
             trucks.forEach((truck, index) => {
                 const btn = document.createElement('button');
                 btn.className = `tab-btn ${index === activeTruckIndex ? 'active' : ''}`;
-                btn.innerHTML = `🚛 ${truck.name}`;
+                btn.innerHTML = `🚛 ${truck.plate}`;
                 btn.onclick = () => switchTab(index);
                 container.appendChild(btn);
             });
@@ -564,10 +674,7 @@
         }
 
         function addNewTruck() {
-            const newNum = trucks.length + 1;
-            trucks.push({ id: Date.now(), name: `KAMYON ${newNum}`, shipments: {} });
-            switchTab(trucks.length - 1); 
-            saveSession();
+            showTruckInfoModal();
         }
 
         function renderTable() {
@@ -729,36 +836,45 @@
 
         async function exportDataSafe() {
             if(!trucks.some(t => Object.values(t.shipments).some(v => v > 0))) {
-                alert("Henüz hiçbir kamyona yükleme yapılmadı."); return;
+                alert("Henüz hiçbir araca yükleme yapılmadı."); return;
             }
-            if(!confirm("Tüm kamyonlar ve kalan stok ayrı sekmeler halinde tek dosyaya indirilecek. Onaylıyor musunuz?")) return;
+            if(!confirm("Tüm araçlar ve kalan stok ayrı sekmeler halinde tek dosyaya indirilecek. Onaylıyor musunuz?")) return;
             document.getElementById('loading-overlay').style.display = 'flex';
             document.getElementById('loading-text').innerText = "Rapor Hazırlanıyor...";
             setTimeout(async () => {
                 try {
                     const workbook = await XlsxPopulate.fromDataAsync(rawFileBuffer);
                     const sheetOriginal = workbook.sheet(0); 
+                    
                     for(let i=0; i<trucks.length; i++) {
                         const truck = trucks[i];
-                        const truckSheet = workbook.cloneSheet(sheetOriginal, truck.name.replace(/\s/g, '_')); 
+                        // Plaka numarasını Excel sheet adı için güvenli hale getir
+                        const safePlate = truck.plate.replace(/[\/\\\?\*\[\]:]/g, '_').substring(0, 31);
+                        const truckSheet = workbook.cloneSheet(sheetOriginal, safePlate); 
                         processSheet(truckSheet, 'truck', i);
                     }
+                    
                     const remainingSheet = workbook.cloneSheet(sheetOriginal, "Kalan_Stok");
                     processSheet(remainingSheet, 'remaining', null);
+                    
                     sheetOriginal.name("Sablon");
                     sheetOriginal.hidden(true); 
+                    
                     const blob = await workbook.outputAsync();
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement("a");
-                    const date = new Date().toISOString().slice(0,10);
+                    
+                    // Dosya adı: İstif No
+                    const fileName = `${istifNo}.xlsx`;
+                    
                     a.href = url;
-                    a.download = `Filo_Sevkiyat_${date}.xlsx`;
+                    a.download = fileName;
                     document.body.appendChild(a);
                     a.click();
                     window.URL.revokeObjectURL(url);
                     document.body.removeChild(a);
                     document.getElementById('loading-overlay').style.display = 'none';
-                    alert("Filo raporu indirildi!");
+                    alert(`Rapor indirildi: ${fileName}`);
                 } catch (err) {
                     console.error(err);
                     alert("Hata: " + err.message);
@@ -821,15 +937,18 @@
         function saveSession() {
             if(!rawFileBuffer) return;
             const base64File = arrayBufferToBase64(rawFileBuffer);
-            localStorage.setItem('tsp_v21_file', base64File);
-            localStorage.setItem('tsp_v21_data', JSON.stringify({inventory, trucks, activeTruckIndex}));
+            localStorage.setItem('tsp_v32_file', base64File);
+            localStorage.setItem('tsp_v32_istif', istifNo);
+            localStorage.setItem('tsp_v32_data', JSON.stringify({inventory, trucks, activeTruckIndex}));
         }
 
         function restoreSession() {
-            const savedData = localStorage.getItem('tsp_v21_data');
-            const savedFile = localStorage.getItem('tsp_v21_file');
+            const savedData = localStorage.getItem('tsp_v32_data');
+            const savedFile = localStorage.getItem('tsp_v32_file');
+            const savedIstif = localStorage.getItem('tsp_v32_istif');
             if(!savedData || !savedFile) return;
             rawFileBuffer = base64ToArrayBuffer(savedFile);
+            istifNo = savedIstif || "Istif_" + Date.now();
             const parsed = JSON.parse(savedData);
             inventory = parsed.inventory;
             trucks = parsed.trucks;
@@ -838,7 +957,7 @@
         }
 
         function checkPreviousSession() {
-            if(localStorage.getItem('tsp_v21_data')) {
+            if(localStorage.getItem('tsp_v32_data')) {
                 document.getElementById('btn-restore').style.display = 'flex';
             }
         }
@@ -848,6 +967,10 @@
             inventory = [];
             trucks = [];
             rawFileBuffer = null;
+            istifNo = "";
+            localStorage.removeItem('tsp_v32_file');
+            localStorage.removeItem('tsp_v32_data');
+            localStorage.removeItem('tsp_v32_istif');
             document.querySelector('#matrix-table thead').innerHTML = '';
             document.querySelector('#matrix-table tbody').innerHTML = '';
             document.getElementById('file-input').value = ''; 
