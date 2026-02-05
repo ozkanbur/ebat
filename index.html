@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
@@ -41,6 +41,23 @@
             flex-direction: column;
             overflow: hidden; 
             padding-top: env(safe-area-inset-top);
+        }
+
+        /* --- APP HEADER --- */
+        #app-header {
+            background: var(--primary);
+            color: white;
+            padding: 12px 20px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         /* --- GİRİŞ EKRANI --- */
@@ -266,6 +283,11 @@
     </style>
 </head>
 <body>
+
+    <!-- APP HEADER -->
+    <div id="app-header" style="display: none;">
+        🌲 Tomruk Stok Pro
+    </div>
 
     <div id="cloud-modal">
         <div class="cloud-content">
@@ -583,6 +605,7 @@
 
         function initApp() {
             document.getElementById('upload-overlay').style.display = 'none';
+            document.getElementById('app-header').style.display = 'flex';
             document.getElementById('top-area').style.display = 'flex';
             document.getElementById('footer').style.display = 'flex';
             renderTabs();
@@ -985,6 +1008,7 @@
             document.querySelector('#matrix-table tbody').innerHTML = '';
             document.getElementById('file-input').value = ''; 
             document.getElementById('error-box').style.display = 'none';
+            document.getElementById('app-header').style.display = 'none';
             document.getElementById('top-area').style.display = 'none';
             document.getElementById('footer').style.display = 'none';
             document.getElementById('upload-overlay').style.display = 'flex';
