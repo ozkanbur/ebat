@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
@@ -932,6 +932,16 @@
             const sheetName = sheet.name();
             sheet.workbook().definedName("Print_Area", `'${sheetName}'!$A$1:$T$104`);
             for (let c = 21; c <= 50; c++) sheet.column(c).hidden(true);
+            
+            // *** YENİ EKLEME: PLAKA VE ŞOFÖR BİLGİSİ ***
+            // Sadece kamyon sayfaları için (Kalan_Stok hariç)
+            if(mode === 'truck') {
+                const truck = trucks[truckIndex];
+                // J105'e Plaka
+                sheet.cell("J105").value(truck.plate);
+                // J106'ya Şoför
+                sheet.cell("J106").value(truck.driver);
+            }
         }
 
         function saveSession() {
