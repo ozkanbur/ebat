@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Tomruk Stok Pro v3.2</title>
+    <title>Tomruk Stok Pro v3.3</title>
 
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' style='background-color: white;'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
@@ -23,11 +23,13 @@
             --accent-light: #eff6ff;
             --success: #16a34a;
             --danger: #dc2626;
+            --warning: #f59e0b;
             --border: #cbd5e1;
             --bg: #f1f5f9;
             --header-bg: #f8fafc;
             --tab-active-bg: #2563eb;
             --tab-inactive-bg: #e2e8f0;
+            --tab-incomplete-bg: #fffbeb;
             --cloud-btn: #0ea5e9;
         }
 
@@ -50,7 +52,7 @@
             padding: 12px 20px;
             text-align: center;
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             letter-spacing: 0.5px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             flex-shrink: 0;
@@ -164,6 +166,9 @@
         .input-field:focus {
             border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
+        .input-field.error {
+            border-color: var(--danger); background: #fef2f2;
+        }
         .btn-group {
             display: flex; gap: 10px; margin-top: 20px;
         }
@@ -177,6 +182,77 @@
         }
         .btn-cancel:hover { background: #e2e8f0; }
         .btn-save:hover { background: #15803d; }
+
+        /* --- EXPORT MODAL --- */
+        #export-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 10001;
+            display: none; align-items: center; justify-content: center;
+        }
+        .export-content {
+            background: white; width: 90%; max-width: 600px; max-height: 85vh;
+            border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
+            animation: slideUp 0.3s ease;
+        }
+        .export-header {
+            padding: 20px; background: var(--header-bg); border-bottom: 1px solid var(--border);
+        }
+        .export-title {
+            font-size: 1.3rem; font-weight: 700; color: var(--primary); text-align: center;
+        }
+        .export-body {
+            flex: 1; overflow-y: auto; padding: 20px;
+        }
+        .truck-info-section {
+            background: #f8fafc; border-radius: 8px; padding: 15px; margin-bottom: 15px;
+            border: 2px solid transparent;
+        }
+        .truck-info-section.incomplete {
+            border-color: var(--warning); background: var(--tab-incomplete-bg);
+        }
+        .truck-info-header {
+            font-weight: 700; color: var(--primary); margin-bottom: 10px; display: flex;
+            align-items: center; gap: 8px;
+        }
+        .remaining-section {
+            border-top: 2px dashed var(--border); padding-top: 20px; margin-top: 20px;
+        }
+        .checkbox-group {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+        }
+        .export-footer {
+            padding: 15px 20px; background: var(--header-bg); border-top: 1px solid var(--border);
+            display: flex; gap: 10px;
+        }
+
+        /* --- CONTEXT MENU --- */
+        #context-menu {
+            position: fixed;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 8px 0;
+            min-width: 180px;
+            z-index: 10002;
+            display: none;
+        }
+        .context-menu-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.2s;
+            font-size: 0.9rem;
+        }
+        .context-menu-item:hover {
+            background: var(--accent-light);
+        }
+        .context-menu-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 4px 0;
+        }
 
         /* --- DASHBOARD & TABS --- */
         #top-area {
@@ -199,8 +275,25 @@
             background: var(--tab-inactive-bg); color: #64748b; border: none;
             padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
             white-space: nowrap; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 5px;
+            position: relative;
         }
-        .tab-btn.active { background: var(--tab-active-bg); color: white; box-shadow: 0 2px 5px rgba(37, 99, 235, 0.3); }
+        .tab-btn.active { 
+            background: var(--tab-active-bg); color: white; 
+            box-shadow: 0 2px 5px rgba(37, 99, 235, 0.3); 
+        }
+        .tab-btn.incomplete {
+            background: var(--tab-incomplete-bg);
+            border: 2px dashed var(--warning);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        .tab-btn.incomplete::after {
+            content: "⚠️";
+            font-size: 0.9rem;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
         .tab-add {
             background: white; border: 1px dashed var(--accent); color: var(--accent);
             width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
@@ -263,12 +356,20 @@
         .btn-finish {
             background: var(--primary); color: white; padding: 12px 20px; border-radius: 8px; border: none;
             font-weight: 600; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-size: 0.9rem;
+            transition: 0.3s;
+        }
+        .btn-finish.warning {
+            background: var(--warning);
+        }
+        .btn-finish:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
         }
         .btn-reset {
             background: #f1f5f9; color: #64748b; border: 1px solid var(--border); border-radius: 8px;
             font-size: 0.85rem; padding: 10px 15px; cursor: pointer; font-weight: 600;
         }
-        .btn-finish:hover { background: #0f172a; }
+        .btn-finish:hover:not(:disabled) { transform: translateY(-2px); }
 
         #loading-overlay {
             position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7);
@@ -286,7 +387,7 @@
 
     <!-- APP HEADER -->
     <div id="app-header" style="display: none;">
-        🌲 Tomruk Stok Pro
+        <span id="app-title">🌲 Tomruk Stok Pro</span>
     </div>
 
     <div id="cloud-modal">
@@ -311,13 +412,13 @@
         </div>
     </div>
 
-    <!-- ARAÇ BİLGİSİ MODAL -->
+    <!-- ARAÇ BİLGİSİ MODAL (Tek araç için) -->
     <div id="truck-info-modal">
         <div class="truck-info-content">
-            <div class="truck-info-title">🚛 Yeni Araç Bilgileri</div>
+            <div class="truck-info-title" id="truck-modal-title">🚛 Araç Bilgileri</div>
             <div class="input-group">
-                <label class="input-label">Plaka Numarası *</label>
-                <input type="text" id="input-plate" class="input-field" placeholder="34 ABC 123" maxlength="15">
+                <label class="input-label">Plaka / İsim *</label>
+                <input type="text" id="input-plate" class="input-field" placeholder="34 ABC 123 veya Kamyon-1" maxlength="50">
             </div>
             <div class="input-group">
                 <label class="input-label">Şoför Adı Soyadı *</label>
@@ -330,11 +431,35 @@
         </div>
     </div>
 
+    <!-- EXPORT MODAL (Tüm araçlar için) -->
+    <div id="export-modal">
+        <div class="export-content">
+            <div class="export-header">
+                <div class="export-title">📋 Araç Bilgilerini Tamamla</div>
+            </div>
+            <div class="export-body" id="export-body">
+                <!-- Dinamik olarak doldurulacak -->
+            </div>
+            <div class="export-footer">
+                <button class="btn-cancel" style="flex: 1;" onclick="closeExportModal()">İptal</button>
+                <button class="btn-save" style="flex: 2;" onclick="confirmExport()">✅ Raporu Oluştur</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTEXT MENU -->
+    <div id="context-menu">
+        <div class="context-menu-item" onclick="editTruckFromMenu()">
+            <span>✏️</span>
+            <span>Bilgileri Düzenle</span>
+        </div>
+    </div>
+
     <div id="upload-overlay">
         <div class="upload-box">
             <div style="font-size: 3rem; margin-bottom: 10px;">🌲</div>
             <h2 style="color: var(--primary); margin-bottom: 5px;">Tomruk Stok Pro</h2>
-            <div style="font-size:0.8rem; color: var(--accent); font-weight:600; margin-bottom: 10px;">Türk Mühendisliğinin Dijital Gücü v3.2</div>
+            <div style="font-size:0.8rem; color: var(--accent); font-weight:600; margin-bottom: 10px;">Türk Mühendisliğinin Dijital Gücü v3.3</div>
             
             <p style="color: #64748b; font-size: 0.9rem; line-height: 1.5; margin-bottom: 20px;">
                 <strong>Özkan KANBUR</strong><br>
@@ -404,12 +529,12 @@
 
     <div id="footer" style="display: none;">
         <button class="btn-reset" onclick="resetApp()">↺ Yeni</button>
-        <button class="btn-finish" onclick="exportDataSafe()">💾 Raporu İndir</button>
+        <button class="btn-finish" id="btn-export" onclick="openExportModal()">💾 Raporu İndir</button>
     </div>
 
     <script>
         // ==========================================
-        // AYARLAR - APPS SCRIPT URL BURAYA
+        // AYARLAR
         // ==========================================
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby82jOMgrDWKMwdNzHwowLPGRG-Elc7nMTh_OktlWw2LS2NggtzgidCztqKb7cV-tCV/exec"; 
 
@@ -418,7 +543,9 @@
         let inventory = [];
         let trucks = []; 
         let activeTruckIndex = 0;
-        let istifNo = ""; // D5 hücresinden gelecek İstif Numarası
+        let istifNo = "";
+        let editingTruckIndex = -1; // Hangi araç düzenleniyor
+        let contextMenuTruckIndex = -1; // Context menu hangi tab için açıldı
 
         window.addEventListener('DOMContentLoaded', () => {
             checkPreviousSession();
@@ -435,6 +562,11 @@
                         item.style.display = 'none';
                     }
                 });
+            });
+
+            // Context menu için click listener
+            document.addEventListener('click', () => {
+                document.getElementById('context-menu').style.display = 'none';
             });
         });
 
@@ -584,17 +716,22 @@
                 if(d5Cell && d5Cell.v) {
                     istifNo = String(d5Cell.v).trim();
                 } else {
-                    istifNo = "Istif_" + Date.now(); // Yoksa varsayılan
+                    istifNo = "Istif_" + Date.now();
                 }
                 
                 const result = parseExcelSmart(sheet);
                 if(result.success) {
                     inventory = result.data;
-                    trucks = [];
+                    trucks = [{
+                        id: Date.now(),
+                        tempName: "Araç 1",
+                        plate: "",
+                        driver: "",
+                        shipments: {}
+                    }];
                     activeTruckIndex = 0;
                     
-                    // İlk aracı otomatik ekle
-                    showTruckInfoModal();
+                    initApp();
                 } else {
                     showError(result.message);
                 }
@@ -608,65 +745,238 @@
             document.getElementById('app-header').style.display = 'flex';
             document.getElementById('top-area').style.display = 'flex';
             document.getElementById('footer').style.display = 'flex';
+            
+            // Başlıkta İstif No göster
+            document.getElementById('app-title').innerText = `🌲 Tomruk Stok Pro - İstif: ${istifNo}`;
+            
             renderTabs();
             renderTable();
             updateDashboard();
+            updateExportButton();
         }
 
         // ==========================================
-        // ARAÇ BİLGİSİ MODAL İŞLEMLERİ
+        // ARAÇ BİLGİSİ MODAL İŞLEMLERİ (Tek Araç)
         // ==========================================
-        function showTruckInfoModal() {
-            document.getElementById('input-plate').value = '';
-            document.getElementById('input-driver').value = '';
+        function showTruckInfoModal(truckIndex = -1) {
+            editingTruckIndex = truckIndex;
+            const truck = truckIndex >= 0 ? trucks[truckIndex] : null;
+            
+            if(truck) {
+                document.getElementById('truck-modal-title').innerText = `🚛 ${truck.tempName || 'Araç'} Bilgileri`;
+                document.getElementById('input-plate').value = truck.plate || '';
+                document.getElementById('input-driver').value = truck.driver || '';
+            } else {
+                document.getElementById('truck-modal-title').innerText = '🚛 Araç Bilgileri';
+                document.getElementById('input-plate').value = '';
+                document.getElementById('input-driver').value = '';
+            }
+            
+            document.getElementById('input-plate').classList.remove('error');
+            document.getElementById('input-driver').classList.remove('error');
             document.getElementById('truck-info-modal').style.display = 'flex';
             setTimeout(() => document.getElementById('input-plate').focus(), 300);
         }
 
         function cancelTruckInfo() {
             document.getElementById('truck-info-modal').style.display = 'none';
-            
-            // Eğer hiç araç yoksa upload ekranına dön
-            if(trucks.length === 0) {
-                resetApp();
-            }
+            editingTruckIndex = -1;
         }
 
         function saveTruckInfo() {
-            const plate = document.getElementById('input-plate').value.trim().toUpperCase();
+            const plate = document.getElementById('input-plate').value.trim();
             const driver = document.getElementById('input-driver').value.trim();
             
-            if(!plate || !driver) {
-                alert("Lütfen plaka ve şoför bilgilerini eksiksiz girin!");
+            let hasError = false;
+            
+            if(!plate) {
+                document.getElementById('input-plate').classList.add('error');
+                hasError = true;
+            } else {
+                document.getElementById('input-plate').classList.remove('error');
+            }
+            
+            if(!driver) {
+                document.getElementById('input-driver').classList.add('error');
+                hasError = true;
+            } else {
+                document.getElementById('input-driver').classList.remove('error');
+            }
+            
+            if(hasError) {
+                alert("Lütfen tüm alanları doldurun!");
                 return;
             }
             
-            // Plaka formatını kontrol et (Türkiye standart)
-            const plateRegex = /^[0-9]{2}\s?[A-Z]{1,3}\s?[0-9]{1,4}$/;
-            if(!plateRegex.test(plate)) {
-                alert("Geçersiz plaka formatı! Örnek: 34 ABC 123");
-                return;
+            if(editingTruckIndex >= 0) {
+                // Mevcut aracı güncelle
+                trucks[editingTruckIndex].plate = plate;
+                trucks[editingTruckIndex].driver = driver;
             }
-            
-            // Yeni araç ekle
-            trucks.push({
-                id: Date.now(),
-                plate: plate,
-                driver: driver,
-                shipments: {}
-            });
             
             document.getElementById('truck-info-modal').style.display = 'none';
+            editingTruckIndex = -1;
             
-            // İlk araç eklendiyse uygulamayı başlat
-            if(trucks.length === 1) {
-                initApp();
-            } else {
-                // Sonraki araçlar için tab'ı değiştir
-                switchTab(trucks.length - 1);
+            renderTabs();
+            updateExportButton();
+            saveSession();
+        }
+
+        // ==========================================
+        // EXPORT MODAL İŞLEMLERİ (Tüm Araçlar)
+        // ==========================================
+        function openExportModal() {
+            // Önce kontrol et - herhangi bir araca yükleme yapılmış mı?
+            const hasAnyShipment = trucks.some(t => Object.values(t.shipments).some(v => v > 0));
+            if(!hasAnyShipment) {
+                alert("Henüz hiçbir araca yükleme yapılmadı.");
+                return;
+            }
+
+            const body = document.getElementById('export-body');
+            body.innerHTML = '';
+            
+            // Her araç için input alanı oluştur
+            trucks.forEach((truck, index) => {
+                const section = document.createElement('div');
+                section.className = 'truck-info-section';
+                if(!truck.plate || !truck.driver) {
+                    section.classList.add('incomplete');
+                }
+                
+                const hasShipment = Object.values(truck.shipments).some(v => v > 0);
+                const totalQty = Object.values(truck.shipments).reduce((sum, v) => sum + v, 0);
+                
+                section.innerHTML = `
+                    <div class="truck-info-header">
+                        🚛 ${truck.tempName || 'Araç ' + (index + 1)}
+                        ${hasShipment ? `<span style="color: var(--success); font-size: 0.8rem;">(${totalQty} adet)</span>` : ''}
+                        ${!truck.plate || !truck.driver ? '<span style="color: var(--warning);">⚠️</span>' : ''}
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Plaka / İsim *</label>
+                        <input type="text" 
+                               class="input-field export-plate" 
+                               data-index="${index}"
+                               value="${truck.plate || ''}" 
+                               placeholder="34 ABC 123 veya Kamyon-1" 
+                               maxlength="50">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Şoför Adı Soyadı *</label>
+                        <input type="text" 
+                               class="input-field export-driver" 
+                               data-index="${index}"
+                               value="${truck.driver || ''}" 
+                               placeholder="Ahmet Yılmaz" 
+                               maxlength="50">
+                    </div>
+                `;
+                
+                body.appendChild(section);
+            });
+            
+            // Kalan stok bölümü
+            const remainingSection = document.createElement('div');
+            remainingSection.className = 'remaining-section';
+            remainingSection.innerHTML = `
+                <div class="truck-info-header">📦 Kalan Stok Sayfası</div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="export-remaining-check">
+                    <label for="export-remaining-check">Kalan envanter için özel isim kullanmak ister misin?</label>
+                </div>
+                <div class="input-group" id="remaining-input-group" style="display: none; margin-top: 10px;">
+                    <label class="input-label">İsim (İsteğe bağlı)</label>
+                    <input type="text" 
+                           id="export-remaining-name" 
+                           class="input-field" 
+                           placeholder="Depo-A, Kalan Stok vb." 
+                           maxlength="50">
+                </div>
+            `;
+            
+            body.appendChild(remainingSection);
+            
+            // Checkbox listener
+            document.getElementById('export-remaining-check').addEventListener('change', function(e) {
+                document.getElementById('remaining-input-group').style.display = e.target.checked ? 'block' : 'none';
+            });
+            
+            document.getElementById('export-modal').style.display = 'flex';
+        }
+
+        function closeExportModal() {
+            document.getElementById('export-modal').style.display = 'none';
+        }
+
+        function confirmExport() {
+            // Tüm araç bilgilerini topla ve kontrol et
+            let hasError = false;
+            const plateInputs = document.querySelectorAll('.export-plate');
+            const driverInputs = document.querySelectorAll('.export-driver');
+            
+            plateInputs.forEach((input, index) => {
+                const plate = input.value.trim();
+                if(!plate) {
+                    input.classList.add('error');
+                    hasError = true;
+                } else {
+                    input.classList.remove('error');
+                    trucks[index].plate = plate;
+                }
+            });
+            
+            driverInputs.forEach((input, index) => {
+                const driver = input.value.trim();
+                if(!driver) {
+                    input.classList.add('error');
+                    hasError = true;
+                } else {
+                    input.classList.remove('error');
+                    trucks[index].driver = driver;
+                }
+            });
+            
+            if(hasError) {
+                alert("⚠️ Lütfen tüm araçların plaka ve şoför bilgilerini doldurun!");
+                return;
             }
             
+            // Kalan stok ismini al (varsa)
+            let remainingName = "";
+            if(document.getElementById('export-remaining-check').checked) {
+                remainingName = document.getElementById('export-remaining-name').value.trim();
+            }
+            
+            closeExportModal();
             saveSession();
+            renderTabs();
+            updateExportButton();
+            
+            // Excel oluştur
+            exportDataSafe(remainingName);
+        }
+
+        // ==========================================
+        // CONTEXT MENU İŞLEMLERİ
+        // ==========================================
+        function showContextMenu(e, truckIndex) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            contextMenuTruckIndex = truckIndex;
+            const menu = document.getElementById('context-menu');
+            
+            menu.style.display = 'block';
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+        }
+
+        function editTruckFromMenu() {
+            document.getElementById('context-menu').style.display = 'none';
+            if(contextMenuTruckIndex >= 0) {
+                showTruckInfoModal(contextMenuTruckIndex);
+            }
         }
 
         // ==========================================
@@ -675,13 +985,39 @@
         function renderTabs() {
             const container = document.getElementById('tab-container');
             container.innerHTML = '';
+            
             trucks.forEach((truck, index) => {
                 const btn = document.createElement('button');
                 btn.className = `tab-btn ${index === activeTruckIndex ? 'active' : ''}`;
-                btn.innerHTML = `🚛 ${truck.plate}`;
+                
+                // Bilgi eksikse incomplete class ekle
+                if(!truck.plate || !truck.driver) {
+                    btn.classList.add('incomplete');
+                }
+                
+                // Tab metni
+                const displayName = truck.plate || truck.tempName || `Araç ${index + 1}`;
+                btn.innerHTML = `🚛 ${displayName}`;
+                
                 btn.onclick = () => switchTab(index);
+                
+                // Context menu için (sağ tık / uzun basma)
+                btn.addEventListener('contextmenu', (e) => showContextMenu(e, index));
+                
+                // Mobil için long press
+                let pressTimer;
+                btn.addEventListener('touchstart', (e) => {
+                    pressTimer = setTimeout(() => {
+                        showContextMenu(e.touches[0], index);
+                    }, 500);
+                });
+                btn.addEventListener('touchend', () => {
+                    clearTimeout(pressTimer);
+                });
+                
                 container.appendChild(btn);
             });
+            
             const addBtn = document.createElement('button');
             addBtn.className = 'tab-add tab-btn';
             addBtn.innerHTML = '+';
@@ -697,7 +1033,65 @@
         }
 
         function addNewTruck() {
-            showTruckInfoModal();
+            // Mevcut aracın bilgileri var mı kontrol et
+            const currentTruck = trucks[activeTruckIndex];
+            if(!currentTruck.plate || !currentTruck.driver) {
+                // Bilgi eksik, önce onu doldurmasını iste
+                showTruckInfoModal(activeTruckIndex);
+                
+                // Modal kapatıldığında yeni araç eklenecek
+                const originalCancel = cancelTruckInfo;
+                cancelTruckInfo = function() {
+                    originalCancel();
+                    cancelTruckInfo = originalCancel; // Restore
+                };
+                
+                const originalSave = saveTruckInfo;
+                saveTruckInfo = function() {
+                    originalSave();
+                    
+                    // Bilgiler kaydedildiyse yeni araç ekle
+                    const newTruckNum = trucks.length + 1;
+                    trucks.push({
+                        id: Date.now(),
+                        tempName: `Araç ${newTruckNum}`,
+                        plate: "",
+                        driver: "",
+                        shipments: {}
+                    });
+                    
+                    switchTab(trucks.length - 1);
+                    saveSession();
+                    
+                    saveTruckInfo = originalSave; // Restore
+                };
+            } else {
+                // Bilgiler tamam, direkt yeni araç ekle
+                const newTruckNum = trucks.length + 1;
+                trucks.push({
+                    id: Date.now(),
+                    tempName: `Araç ${newTruckNum}`,
+                    plate: "",
+                    driver: "",
+                    shipments: {}
+                });
+                
+                switchTab(trucks.length - 1);
+                saveSession();
+            }
+        }
+
+        function updateExportButton() {
+            const btn = document.getElementById('btn-export');
+            const incompleteCount = trucks.filter(t => !t.plate || !t.driver).length;
+            
+            if(incompleteCount > 0) {
+                btn.classList.add('warning');
+                btn.innerHTML = `💾 Raporu İndir (${incompleteCount} araç eksik!)`;
+            } else {
+                btn.classList.remove('warning');
+                btn.innerHTML = '💾 Raporu İndir';
+            }
         }
 
         function renderTable() {
@@ -857,11 +1251,7 @@
             return {success:true, data};
         }
 
-        async function exportDataSafe() {
-            if(!trucks.some(t => Object.values(t.shipments).some(v => v > 0))) {
-                alert("Henüz hiçbir araca yükleme yapılmadı."); return;
-            }
-            if(!confirm("Tüm araçlar ve kalan stok ayrı sekmeler halinde tek dosyaya indirilecek. Onaylıyor musunuz?")) return;
+        async function exportDataSafe(remainingName = "") {
             document.getElementById('loading-overlay').style.display = 'flex';
             document.getElementById('loading-text').innerText = "Rapor Hazırlanıyor...";
             setTimeout(async () => {
@@ -871,13 +1261,15 @@
                     
                     for(let i=0; i<trucks.length; i++) {
                         const truck = trucks[i];
-                        // Plaka numarasını Excel sheet adı için güvenli hale getir
-                        const safePlate = truck.plate.replace(/[\/\\\?\*\[\]:]/g, '_').substring(0, 31);
-                        const truckSheet = workbook.cloneSheet(sheetOriginal, safePlate); 
+                        // Plaka/isim güvenli hale getir
+                        const safeName = (truck.plate || truck.tempName).replace(/[\/\\\?\*\[\]:]/g, '_').substring(0, 31);
+                        const truckSheet = workbook.cloneSheet(sheetOriginal, safeName); 
                         processSheet(truckSheet, 'truck', i);
                     }
                     
-                    const remainingSheet = workbook.cloneSheet(sheetOriginal, "Kalan_Stok");
+                    // Kalan stok sayfası
+                    const remainingSheetName = remainingName ? remainingName.replace(/[\/\\\?\*\[\]:]/g, '_').substring(0, 31) : "Kalan_Stok";
+                    const remainingSheet = workbook.cloneSheet(sheetOriginal, remainingSheetName);
                     processSheet(remainingSheet, 'remaining', null);
                     
                     sheetOriginal.name("Sablon");
@@ -887,7 +1279,6 @@
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement("a");
                     
-                    // Dosya adı: İstif No
                     const fileName = `${istifNo}.xlsx`;
                     
                     a.href = url;
@@ -897,7 +1288,7 @@
                     window.URL.revokeObjectURL(url);
                     document.body.removeChild(a);
                     document.getElementById('loading-overlay').style.display = 'none';
-                    alert(`Rapor indirildi: ${fileName}`);
+                    alert(`✅ Rapor indirildi: ${fileName}`);
                 } catch (err) {
                     console.error(err);
                     alert("Hata: " + err.message);
@@ -956,29 +1347,26 @@
             sheet.workbook().definedName("Print_Area", `'${sheetName}'!$A$1:$T$104`);
             for (let c = 21; c <= 50; c++) sheet.column(c).hidden(true);
             
-            // *** YENİ EKLEME: PLAKA VE ŞOFÖR BİLGİSİ ***
-            // Sadece kamyon sayfaları için (Kalan_Stok hariç)
+            // Plaka ve Şoför bilgisi (sadece kamyon sayfaları için)
             if(mode === 'truck') {
                 const truck = trucks[truckIndex];
-                // J105'e Plaka
-                sheet.cell("J105").value(truck.plate);
-                // J106'ya Şoför
-                sheet.cell("J106").value(truck.driver);
+                sheet.cell("J105").value(truck.plate || truck.tempName);
+                sheet.cell("J106").value(truck.driver || "");
             }
         }
 
         function saveSession() {
             if(!rawFileBuffer) return;
             const base64File = arrayBufferToBase64(rawFileBuffer);
-            localStorage.setItem('tsp_v32_file', base64File);
-            localStorage.setItem('tsp_v32_istif', istifNo);
-            localStorage.setItem('tsp_v32_data', JSON.stringify({inventory, trucks, activeTruckIndex}));
+            localStorage.setItem('tsp_v33_file', base64File);
+            localStorage.setItem('tsp_v33_istif', istifNo);
+            localStorage.setItem('tsp_v33_data', JSON.stringify({inventory, trucks, activeTruckIndex}));
         }
 
         function restoreSession() {
-            const savedData = localStorage.getItem('tsp_v32_data');
-            const savedFile = localStorage.getItem('tsp_v32_file');
-            const savedIstif = localStorage.getItem('tsp_v32_istif');
+            const savedData = localStorage.getItem('tsp_v33_data');
+            const savedFile = localStorage.getItem('tsp_v33_file');
+            const savedIstif = localStorage.getItem('tsp_v33_istif');
             if(!savedData || !savedFile) return;
             rawFileBuffer = base64ToArrayBuffer(savedFile);
             istifNo = savedIstif || "Istif_" + Date.now();
@@ -990,7 +1378,7 @@
         }
 
         function checkPreviousSession() {
-            if(localStorage.getItem('tsp_v32_data')) {
+            if(localStorage.getItem('tsp_v33_data')) {
                 document.getElementById('btn-restore').style.display = 'flex';
             }
         }
@@ -1001,9 +1389,9 @@
             trucks = [];
             rawFileBuffer = null;
             istifNo = "";
-            localStorage.removeItem('tsp_v32_file');
-            localStorage.removeItem('tsp_v32_data');
-            localStorage.removeItem('tsp_v32_istif');
+            localStorage.removeItem('tsp_v33_file');
+            localStorage.removeItem('tsp_v33_data');
+            localStorage.removeItem('tsp_v33_istif');
             document.querySelector('#matrix-table thead').innerHTML = '';
             document.querySelector('#matrix-table tbody').innerHTML = '';
             document.getElementById('file-input').value = ''; 
