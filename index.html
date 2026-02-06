@@ -183,7 +183,7 @@
         .btn-cancel:hover { background: #e2e8f0; }
         .btn-save:hover { background: #15803d; }
 
-        /* --- EXPORT MODAL (Sadece Kalan Stok İçin) --- */
+        /* --- EXPORT MODAL (Güncellendi) --- */
         #export-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); z-index: 10001;
@@ -363,7 +363,6 @@
 </head>
 <body>
 
-    <!-- APP HEADER -->
     <div id="app-header" style="display: none;">
         <span id="app-title">🌲 Tomruk Stok Pro</span>
     </div>
@@ -390,7 +389,6 @@
         </div>
     </div>
 
-    <!-- ARAÇ BİLGİSİ MODAL (Tek araç için) -->
     <div id="truck-info-modal">
         <div class="truck-info-content">
             <div class="truck-info-title" id="truck-modal-title">🚛 Araç Bilgileri</div>
@@ -409,7 +407,6 @@
         </div>
     </div>
 
-    <!-- EXPORT MODAL (Sadece Kalan Stok) -->
     <div id="export-modal">
         <div class="export-content">
             <div class="export-title">📦 Kalan Stok Sayfası</div>
@@ -417,17 +414,35 @@
             <div class="checkbox-group">
                 <input type="checkbox" id="export-remaining-check">
                 <label for="export-remaining-check">
-                    Kalan envanter için özel isim kullanmak ister misin?
+                    Kalan envanter için özel isim ve bilgi kullanmak ister misin?
                 </label>
             </div>
             
-            <div class="input-group" id="remaining-input-group" style="display: none;">
-                <label class="input-label">İsim (İsteğe bağlı)</label>
-                <input type="text" 
-                       id="export-remaining-name" 
-                       class="input-field" 
-                       placeholder="Depo-A, Kalan Stok vb." 
-                       maxlength="50">
+            <div id="remaining-input-group" style="display: none;">
+                <div class="input-group">
+                    <label class="input-label">Sayfa Adı (İsteğe bağlı)</label>
+                    <input type="text" 
+                           id="export-remaining-name" 
+                           class="input-field" 
+                           placeholder="Kalan Stok vb." 
+                           maxlength="50">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Plaka</label>
+                    <input type="text" 
+                           id="export-remaining-plate" 
+                           class="input-field" 
+                           placeholder="34 ABC 123" 
+                           maxlength="50">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Şoför Adı</label>
+                    <input type="text" 
+                           id="export-remaining-driver" 
+                           class="input-field" 
+                           placeholder="Ahmet Yılmaz" 
+                           maxlength="50">
+                </div>
             </div>
             
             <div class="btn-group">
@@ -437,14 +452,12 @@
         </div>
     </div>
 
-    <!-- CONTEXT MENU -->
     <div id="context-menu">
         <div class="context-menu-item" onclick="editTruckFromMenu()">
             <span>✏️</span>
             <span>Bilgileri Düzenle</span>
         </div>
     </div>
-
     <div id="upload-overlay">
         <div class="upload-box">
             <div style="font-size: 3rem; margin-bottom: 10px;">🌲</div>
@@ -560,6 +573,7 @@
 
             // Checkbox listener
             document.getElementById('export-remaining-check').addEventListener('change', function(e) {
+                // Checkbox değiştiğinde input grubunu aç/kapat
                 document.getElementById('remaining-input-group').style.display = e.target.checked ? 'block' : 'none';
             });
         });
@@ -814,7 +828,7 @@
         }
 
         // ==========================================
-        // EXPORT MODAL İŞLEMLERİ
+        // EXPORT MODAL İŞLEMLERİ (GÜNCELLENDİ)
         // ==========================================
         function openExportModal() {
             const hasAnyShipment = trucks.some(t => Object.values(t.shipments).some(v => v > 0));
@@ -830,10 +844,12 @@
                 return;
             }
 
-            // Checkbox ve input'u sıfırla
+            // Checkbox ve input'ları sıfırla
             document.getElementById('export-remaining-check').checked = false;
             document.getElementById('remaining-input-group').style.display = 'none';
             document.getElementById('export-remaining-name').value = '';
+            document.getElementById('export-remaining-plate').value = '';
+            document.getElementById('export-remaining-driver').value = '';
             
             document.getElementById('export-modal').style.display = 'flex';
         }
@@ -844,12 +860,18 @@
 
         function confirmExport() {
             let remainingName = "";
+            let remainingPlate = "";
+            let remainingDriver = "";
+            
             if(document.getElementById('export-remaining-check').checked) {
                 remainingName = document.getElementById('export-remaining-name').value.trim();
+                remainingPlate = document.getElementById('export-remaining-plate').value.trim();
+                remainingDriver = document.getElementById('export-remaining-driver').value.trim();
             }
             
             closeExportModal();
-            exportDataSafe(remainingName);
+            // Yeni parametreleri gönderiyoruz
+            exportDataSafe(remainingName, remainingPlate, remainingDriver);
         }
 
         // ==========================================
@@ -1137,7 +1159,7 @@
             return {success:true, data};
         }
 
-        async function exportDataSafe(remainingName = "") {
+        async function exportDataSafe(remainingName = "", remPlate = "", remDriver = "") {
             document.getElementById('loading-overlay').style.display = 'flex';
             document.getElementById('loading-text').innerText = "Rapor Hazırlanıyor...";
             setTimeout(async () => {
@@ -1154,7 +1176,9 @@
                     
                     const remainingSheetName = remainingName ? remainingName.replace(/[\/\\\?\*\[\]:]/g, '_').substring(0, 31) : "Kalan_Stok";
                     const remainingSheet = workbook.cloneSheet(sheetOriginal, remainingSheetName);
-                    processSheet(remainingSheet, 'remaining', null);
+                    
+                    // Kalan stok sayfasını işle ve ek bilgileri gönder
+                    processSheet(remainingSheet, 'remaining', null, { plate: remPlate, driver: remDriver });
                     
                     sheetOriginal.name("Sablon");
                     sheetOriginal.hidden(true); 
@@ -1181,7 +1205,7 @@
             }, 500);
         }
 
-        function processSheet(sheet, mode, truckIndex) {
+        function processSheet(sheet, mode, truckIndex, extraInfo = {}) {
             const activeRows = new Set();
             const sortedLengths = [...new Set(inventory.map(i => i.length))].sort((a,b) => a - b);
             const targetCols = [3, 5, 7, 9, 11, 13, 15];
@@ -1235,6 +1259,10 @@
                 const truck = trucks[truckIndex];
                 sheet.cell("J105").value(truck.plate || truck.tempName);
                 sheet.cell("J106").value(truck.driver || "");
+            } else if (mode === 'remaining') {
+                // İstek üzerine Kalan Stok sayfası için belirtilen hücrelere yazıyoruz
+                if(extraInfo.plate) sheet.cell("J104").value(extraInfo.plate);
+                if(extraInfo.driver) sheet.cell("J105").value(extraInfo.driver);
             }
         }
 
