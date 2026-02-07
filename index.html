@@ -183,7 +183,7 @@
         .btn-cancel:hover { background: #e2e8f0; }
         .btn-save:hover { background: #15803d; }
 
-        /* --- EXPORT MODAL (Güncellendi) --- */
+        /* --- EXPORT MODAL --- */
         #export-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); z-index: 10001;
@@ -414,21 +414,13 @@
             <div class="checkbox-group">
                 <input type="checkbox" id="export-remaining-check">
                 <label for="export-remaining-check">
-                    Kalan envanter için özel isim ve bilgi kullanmak ister misin?
+                    Kalan envanter için Plaka ve Şoför bilgisi eklemek ister misin?
                 </label>
             </div>
             
             <div id="remaining-input-group" style="display: none;">
                 <div class="input-group">
-                    <label class="input-label">Sayfa Adı (İsteğe bağlı)</label>
-                    <input type="text" 
-                           id="export-remaining-name" 
-                           class="input-field" 
-                           placeholder="Kalan Stok vb." 
-                           maxlength="50">
-                </div>
-                <div class="input-group">
-                    <label class="input-label">Plaka</label>
+                    <label class="input-label">Plaka (Sayfa Adı Olacak)</label>
                     <input type="text" 
                            id="export-remaining-plate" 
                            class="input-field" 
@@ -573,7 +565,6 @@
 
             // Checkbox listener
             document.getElementById('export-remaining-check').addEventListener('change', function(e) {
-                // Checkbox değiştiğinde input grubunu aç/kapat
                 document.getElementById('remaining-input-group').style.display = e.target.checked ? 'block' : 'none';
             });
         });
@@ -837,17 +828,15 @@
                 return;
             }
 
-            // Eksik bilgi kontrolü
             const incompleteCount = trucks.filter(t => !t.plate || !t.driver).length;
             if(incompleteCount > 0) {
                 alert(`⚠️ ${incompleteCount} aracın bilgileri eksik!\n\nLütfen önce tab'lara uzun basarak veya sağ tıklayarak bilgileri tamamlayın.`);
                 return;
             }
 
-            // Checkbox ve input'ları sıfırla
+            // Reset UI
             document.getElementById('export-remaining-check').checked = false;
             document.getElementById('remaining-input-group').style.display = 'none';
-            document.getElementById('export-remaining-name').value = '';
             document.getElementById('export-remaining-plate').value = '';
             document.getElementById('export-remaining-driver').value = '';
             
@@ -859,19 +848,17 @@
         }
 
         function confirmExport() {
-            let remainingName = "";
             let remainingPlate = "";
             let remainingDriver = "";
             
             if(document.getElementById('export-remaining-check').checked) {
-                remainingName = document.getElementById('export-remaining-name').value.trim();
                 remainingPlate = document.getElementById('export-remaining-plate').value.trim();
                 remainingDriver = document.getElementById('export-remaining-driver').value.trim();
             }
             
             closeExportModal();
-            // Yeni parametreleri gönderiyoruz
-            exportDataSafe(remainingName, remainingPlate, remainingDriver);
+            // Artık isim sormuyoruz, direkt Plaka ve Şoför yolluyoruz
+            exportDataSafe(remainingPlate, remainingDriver);
         }
 
         // ==========================================
@@ -1159,7 +1146,8 @@
             return {success:true, data};
         }
 
-        async function exportDataSafe(remainingName = "", remPlate = "", remDriver = "") {
+        // PARAMETRELER GÜNCELLENDİ: Artık isim almayıp Plaka ve Şoför alıyor
+        async function exportDataSafe(remPlate = "", remDriver = "") {
             document.getElementById('loading-overlay').style.display = 'flex';
             document.getElementById('loading-text').innerText = "Rapor Hazırlanıyor...";
             setTimeout(async () => {
@@ -1174,7 +1162,13 @@
                         processSheet(truckSheet, 'truck', i);
                     }
                     
-                    const remainingSheetName = remainingName ? remainingName.replace(/[\/\\\?\*\[\]:]/g, '_').substring(0, 31) : "Kalan_Stok";
+                    // Kalan stok için Sayfa Adı belirleme:
+                    // Eğer Plaka varsa onu kullan, yoksa "Kalan_Stok" yap.
+                    let remainingSheetName = "Kalan_Stok";
+                    if (remPlate) {
+                        remainingSheetName = remPlate.replace(/[\/\\\?\*\[\]:]/g, '_').substring(0, 31);
+                    }
+                    
                     const remainingSheet = workbook.cloneSheet(sheetOriginal, remainingSheetName);
                     
                     // Kalan stok sayfasını işle ve ek bilgileri gönder
@@ -1261,8 +1255,11 @@
                 sheet.cell("J106").value(truck.driver || "");
             } else if (mode === 'remaining') {
                 // İstek üzerine Kalan Stok sayfası için belirtilen hücrelere yazıyoruz
-                if(extraInfo.plate) sheet.cell("J104").value(extraInfo.plate);
-                if(extraInfo.driver) sheet.cell("J105").value(extraInfo.driver);
+                // Plakayı J105'e (Standart şablonda genellikle plaka buradadır)
+                // Şoförü J106'ya yazıyoruz. 
+                // Eğer önceki isteğinizdeki J104 hücresi elzem ise burayı değiştirebilirsiniz.
+                if(extraInfo.plate) sheet.cell("J105").value(extraInfo.plate);
+                if(extraInfo.driver) sheet.cell("J106").value(extraInfo.driver);
             }
         }
 
