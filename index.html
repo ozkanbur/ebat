@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Tomruk Stok Pro v3.3</title>
+    <title>Tomruk Stok Pro v3.4</title>
 
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' style='background-color: white;'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
@@ -183,7 +183,7 @@
         .btn-cancel:hover { background: #e2e8f0; }
         .btn-save:hover { background: #15803d; }
 
-        /* --- EXPORT MODAL --- */
+        /* --- EXPORT MODAL (GÜNCELLENDİ: Sadece Plaka ve Şoför) --- */
         #export-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); z-index: 10001;
@@ -254,6 +254,11 @@
             padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
             white-space: nowrap; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 5px;
             position: relative;
+            
+            /* IPHONE FIX: Uzun basınca sistem menüsü çıkmasın */
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
         .tab-btn.active { 
             background: var(--tab-active-bg); color: white; 
@@ -857,7 +862,6 @@
             }
             
             closeExportModal();
-            // Artık isim sormuyoruz, direkt Plaka ve Şoför yolluyoruz
             exportDataSafe(remainingPlate, remainingDriver);
         }
 
@@ -865,15 +869,22 @@
         // CONTEXT MENU İŞLEMLERİ
         // ==========================================
         function showContextMenu(e, truckIndex) {
-            e.preventDefault();
-            e.stopPropagation();
+            // Eğer e bir event objesi ise (PC)
+            if (e.preventDefault) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
             
             contextMenuTruckIndex = truckIndex;
             const menu = document.getElementById('context-menu');
             
+            // Eğer Touch objesi geldiyse (Mobil)
+            let pageX = e.pageX;
+            let pageY = e.pageY;
+
             menu.style.display = 'block';
-            menu.style.left = e.pageX + 'px';
-            menu.style.top = e.pageY + 'px';
+            menu.style.left = pageX + 'px';
+            menu.style.top = pageY + 'px';
         }
 
         function editTruckFromMenu() {
@@ -903,15 +914,29 @@
                 
                 btn.onclick = () => switchTab(index);
                 
+                // PC Sağ Tık
                 btn.addEventListener('contextmenu', (e) => showContextMenu(e, index));
                 
+                // IPHONE & ANDROID UZUN BASMA (Touch Logic)
                 let pressTimer;
+                
                 btn.addEventListener('touchstart', (e) => {
+                    // Dokunma başladığında sayacı başlat
                     pressTimer = setTimeout(() => {
+                        // 500ms basılı tutulursa menüyü aç
+                        // e.touches[0] koordinatları içerir
                         showContextMenu(e.touches[0], index);
                     }, 500);
-                });
+                }, { passive: true });
+
                 btn.addEventListener('touchend', () => {
+                    // Parmağını çektiyse sayacı iptal et
+                    clearTimeout(pressTimer);
+                });
+
+                btn.addEventListener('touchmove', () => {
+                    // IPHONE FIX: Eğer parmağını kaydırıyorsa (scroll yapıyorsa)
+                    // uzun basmayı iptal et. Menü açılmasın.
                     clearTimeout(pressTimer);
                 });
                 
@@ -1146,7 +1171,6 @@
             return {success:true, data};
         }
 
-        // PARAMETRELER GÜNCELLENDİ: Artık isim almayıp Plaka ve Şoför alıyor
         async function exportDataSafe(remPlate = "", remDriver = "") {
             document.getElementById('loading-overlay').style.display = 'flex';
             document.getElementById('loading-text').innerText = "Rapor Hazırlanıyor...";
@@ -1162,8 +1186,7 @@
                         processSheet(truckSheet, 'truck', i);
                     }
                     
-                    // Kalan stok için Sayfa Adı belirleme:
-                    // Eğer Plaka varsa onu kullan, yoksa "Kalan_Stok" yap.
+                    // Kalan stok sayfa adı
                     let remainingSheetName = "Kalan_Stok";
                     if (remPlate) {
                         remainingSheetName = remPlate.replace(/[\/\\\?\*\[\]:]/g, '_').substring(0, 31);
@@ -1171,7 +1194,7 @@
                     
                     const remainingSheet = workbook.cloneSheet(sheetOriginal, remainingSheetName);
                     
-                    // Kalan stok sayfasını işle ve ek bilgileri gönder
+                    // Plaka ve şoförü işle
                     processSheet(remainingSheet, 'remaining', null, { plate: remPlate, driver: remDriver });
                     
                     sheetOriginal.name("Sablon");
@@ -1254,10 +1277,6 @@
                 sheet.cell("J105").value(truck.plate || truck.tempName);
                 sheet.cell("J106").value(truck.driver || "");
             } else if (mode === 'remaining') {
-                // İstek üzerine Kalan Stok sayfası için belirtilen hücrelere yazıyoruz
-                // Plakayı J105'e (Standart şablonda genellikle plaka buradadır)
-                // Şoförü J106'ya yazıyoruz. 
-                // Eğer önceki isteğinizdeki J104 hücresi elzem ise burayı değiştirebilirsiniz.
                 if(extraInfo.plate) sheet.cell("J105").value(extraInfo.plate);
                 if(extraInfo.driver) sheet.cell("J106").value(extraInfo.driver);
             }
