@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Tomruk Stok Pro v3.4</title>
+    <title>Tomruk Stok Pro v3.5</title>
 
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' style='background-color: white;'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
@@ -115,8 +115,10 @@
             padding: 15px; background: var(--header-bg); border-bottom: 1px solid var(--border);
             display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
         }
-        .cloud-title { font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 5px; }
-        .btn-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; }
+        .cloud-title { font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 5px; flex: 1; overflow: hidden;}
+        .cloud-title span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .btn-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; margin-left: 10px;}
         
         #cloud-search-area {
             padding: 10px; background: white; border-bottom: 1px solid #eee; display: none;
@@ -134,8 +136,8 @@
             cursor: pointer; transition: 0.2s; border-radius: 8px;
         }
         .cloud-item:hover { background: #f0f9ff; }
-        .cloud-icon { font-size: 1.2rem; }
-        .cloud-text { font-weight: 500; color: #334155; }
+        .cloud-icon { font-size: 1.2rem; min-width: 25px; text-align: center;}
+        .cloud-text { font-weight: 500; color: #334155; word-break: break-word;}
         
         .cloud-loading { text-align: center; padding: 20px; color: #64748b; display: none; }
         .btn-back-cloud { padding: 5px 10px; background: #e2e8f0; border-radius: 5px; cursor: pointer; border: none; font-size: 0.8rem; margin-right: 10px; display: none;}
@@ -183,7 +185,7 @@
         .btn-cancel:hover { background: #e2e8f0; }
         .btn-save:hover { background: #15803d; }
 
-        /* --- EXPORT MODAL (GÜNCELLENDİ: Sadece Plaka ve Şoför) --- */
+        /* --- EXPORT MODAL --- */
         #export-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); z-index: 10001;
@@ -254,8 +256,6 @@
             padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
             white-space: nowrap; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 5px;
             position: relative;
-            
-            /* IPHONE FIX: Uzun basınca sistem menüsü çıkmasın */
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
@@ -376,14 +376,14 @@
         <div class="cloud-content">
             <div class="cloud-header">
                 <div class="cloud-title">
-                    <button id="cloud-back-btn" class="btn-back-cloud" onclick="fetchYears()">⬅️ Geri</button>
+                    <button id="cloud-back-btn" class="btn-back-cloud" onclick="handleCloudBack()">⬅️ Geri</button>
                     <span id="cloud-title-text">Yıl Seçimi</span>
                 </div>
                 <button class="btn-close" onclick="closeCloudMenu()">×</button>
             </div>
             
             <div id="cloud-search-area">
-                <input type="text" id="search-input" placeholder="🔍 İstif No Ara (örn: 1234)" inputmode="numeric">
+                <input type="text" id="search-input" placeholder="🔍 Dosya Ara..." inputmode="text">
             </div>
 
             <div id="cloud-list" class="cloud-body"></div>
@@ -459,7 +459,7 @@
         <div class="upload-box">
             <div style="font-size: 3rem; margin-bottom: 10px;">🌲</div>
             <h2 style="color: var(--primary); margin-bottom: 5px;">Tomruk Stok Pro</h2>
-            <div style="font-size:0.8rem; color: var(--accent); font-weight:600; margin-bottom: 10px;">Türk Mühendisliğinin Dijital Gücü v3.3</div>
+            <div style="font-size:0.8rem; color: var(--accent); font-weight:600; margin-bottom: 10px;">Türk Mühendisliğinin Dijital Gücü v3.5</div>
             
             <p style="color: #64748b; font-size: 0.9rem; line-height: 1.5; margin-bottom: 20px;">
                 <strong>Özkan KANBUR</strong><br>
@@ -546,6 +546,9 @@
         let istifNo = "";
         let editingTruckIndex = -1;
         let contextMenuTruckIndex = -1;
+        
+        // Klasör Gezinti Geçmişi
+        let folderHistory = []; // {id: 'xyz', name: 'Klasör Adı'} tutacak
 
         window.addEventListener('DOMContentLoaded', () => {
             checkPreviousSession();
@@ -575,7 +578,7 @@
         });
 
         // ==========================================
-        // CLOUD / DRIVE İŞLEMLERİ
+        // CLOUD / DRIVE İŞLEMLERİ (GÜNCELLENDİ)
         // ==========================================
         function openCloudMenu() {
             if(SCRIPT_URL.includes("BURAYA_")) {
@@ -583,11 +586,13 @@
                 return;
             }
             document.getElementById('cloud-modal').style.display = 'flex';
-            fetchYears();
+            folderHistory = []; // Geçmişi sıfırla
+            fetchYears(); // Ana dizini getir
         }
 
         function closeCloudMenu() {
             document.getElementById('cloud-modal').style.display = 'none';
+            folderHistory = [];
         }
 
         function showCloudLoading(show) {
@@ -595,13 +600,37 @@
             document.getElementById('cloud-list').style.display = show ? 'none' : 'block';
         }
 
+        // Geri Tuşu Mantığı
+        function handleCloudBack() {
+            if (folderHistory.length > 0) {
+                folderHistory.pop(); // Şu anki klasörü çıkar
+                
+                if (folderHistory.length === 0) {
+                    // Eğer geçmiş boşaldıysa ana dizine dönüyoruz
+                    fetchYears();
+                } else {
+                    // Bir önceki klasöre dön
+                    const prevFolder = folderHistory[folderHistory.length - 1];
+                    // false parametresi geçmişe tekrar eklemeyi engeller
+                    fetchFiles(prevFolder.id, prevFolder.name, false); 
+                }
+            } else {
+                // Zaten en baştaysa kapat veya ana dizini yenile
+                fetchYears();
+            }
+        }
+
         async function fetchYears() {
             showCloudLoading(true);
+            // Ana dizindeyken Geri tuşunu gizle veya disable et
             document.getElementById('cloud-back-btn').style.display = 'none';
-            document.getElementById('cloud-title-text').innerText = "Yıl Seçimi";
+            document.getElementById('cloud-title-text').innerText = "Dosya Seçimi";
             document.getElementById('cloud-search-area').style.display = 'none';
             document.getElementById('search-input').value = '';
             
+            // Geçmişi temizle
+            folderHistory = [];
+
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=getYears`);
                 const folders = await response.json();
@@ -612,12 +641,17 @@
             showCloudLoading(false);
         }
 
-        async function fetchFiles(folderId, yearName) {
+        // pushToHistory: true ise bu işlemi geçmişe ekler, Geri tuşuna basınca false gelir.
+        async function fetchFiles(folderId, yearName, pushToHistory = true) {
             showCloudLoading(true);
-            document.getElementById('cloud-back-btn').style.display = 'inline-block';
+            document.getElementById('cloud-back-btn').style.display = 'inline-block'; // Geri tuşunu göster
             document.getElementById('cloud-title-text').innerText = yearName;
             document.getElementById('cloud-search-area').style.display = 'block';
             document.getElementById('search-input').value = '';
+
+            if (pushToHistory) {
+                folderHistory.push({id: folderId, name: yearName});
+            }
 
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=getFiles&folderId=${folderId}`);
@@ -642,10 +676,18 @@
                 const div = document.createElement('div');
                 div.className = 'cloud-item';
                 
-                if (type === 'year') {
+                // --- AKILLI KLASÖR TESPİTİ ---
+                // Eğer tip 'year' ise kesin klasördür.
+                // Eğer tip 'file' ise ama adı .xls/.xlsx ile BİTMİYORSA, bunu da klasör sayıp içine girelim.
+                const isExcel = item.name.toLowerCase().endsWith('.xls') || item.name.toLowerCase().endsWith('.xlsx');
+                const isFolder = (type === 'year') || (!isExcel); 
+
+                if (isFolder) {
+                    // Klasör Görünümü
                     div.innerHTML = `<span class="cloud-icon">📁</span> <span class="cloud-text">${item.name}</span>`;
-                    div.onclick = () => fetchFiles(item.id, item.name);
+                    div.onclick = () => fetchFiles(item.id, item.name, true);
                 } else {
+                    // Excel Dosyası Görünümü
                     div.innerHTML = `<span class="cloud-icon">📄</span> <span class="cloud-text">${item.name}</span>`;
                     div.onclick = () => downloadAndProcessDriveFile(item.id, item.name);
                 }
@@ -655,7 +697,7 @@
 
         async function downloadAndProcessDriveFile(fileId, fileName) {
             showCloudLoading(true);
-            document.getElementById('cloud-title-text').innerText = "Dosya İndiriliyor...";
+            document.getElementById('cloud-title-text').innerText = "İndiriliyor...";
             document.getElementById('cloud-search-area').style.display = 'none';
             
             try {
@@ -993,6 +1035,7 @@
                     tempName: `Araç ${newTruckNum}`,
                     plate: "",
                     driver: "",
+
                     shipments: {}
                 });
                 
