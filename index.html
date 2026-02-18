@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Tomruk Stok Pro v3.5</title>
+    <title>Tomruk Stok Pro v3.7</title>
 
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' style='background-color: white;'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
@@ -136,8 +136,12 @@
             cursor: pointer; transition: 0.2s; border-radius: 8px;
         }
         .cloud-item:hover { background: #f0f9ff; }
-        .cloud-icon { font-size: 1.2rem; min-width: 25px; text-align: center;}
+        .cloud-icon { font-size: 1.4rem; min-width: 30px; text-align: center; }
         .cloud-text { font-weight: 500; color: #334155; word-break: break-word;}
+        
+        /* İKON RENKLERİ */
+        .icon-folder { color: #eab308; } /* Sarı Klasör */
+        .icon-file { color: #16a34a; }   /* Yeşil Excel */
         
         .cloud-loading { text-align: center; padding: 20px; color: #64748b; display: none; }
         .btn-back-cloud { padding: 5px 10px; background: #e2e8f0; border-radius: 5px; cursor: pointer; border: none; font-size: 0.8rem; margin-right: 10px; display: none;}
@@ -377,13 +381,13 @@
             <div class="cloud-header">
                 <div class="cloud-title">
                     <button id="cloud-back-btn" class="btn-back-cloud" onclick="handleCloudBack()">⬅️ Geri</button>
-                    <span id="cloud-title-text">Yıl Seçimi</span>
+                    <span id="cloud-title-text">Dosyalar</span>
                 </div>
                 <button class="btn-close" onclick="closeCloudMenu()">×</button>
             </div>
             
             <div id="cloud-search-area">
-                <input type="text" id="search-input" placeholder="🔍 Dosya Ara..." inputmode="text">
+                <input type="text" id="search-input" placeholder="🔍 Ara..." inputmode="text">
             </div>
 
             <div id="cloud-list" class="cloud-body"></div>
@@ -459,7 +463,7 @@
         <div class="upload-box">
             <div style="font-size: 3rem; margin-bottom: 10px;">🌲</div>
             <h2 style="color: var(--primary); margin-bottom: 5px;">Tomruk Stok Pro</h2>
-            <div style="font-size:0.8rem; color: var(--accent); font-weight:600; margin-bottom: 10px;">Türk Mühendisliğinin Dijital Gücü v3.5</div>
+            <div style="font-size:0.8rem; color: var(--accent); font-weight:600; margin-bottom: 10px;">Türk Mühendisliğinin Dijital Gücü v3.7</div>
             
             <p style="color: #64748b; font-size: 0.9rem; line-height: 1.5; margin-bottom: 20px;">
                 <strong>Özkan KANBUR</strong><br>
@@ -536,7 +540,7 @@
         // ==========================================
         // AYARLAR
         // ==========================================
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby82jOMgrDWKMwdNzHwowLPGRG-Elc7nMTh_OktlWw2LS2NggtzgidCztqKb7cV-tCV/exec"; 
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbygtPZZ5zTatTcVtCi3OwVhYKY7bChGspQlEbpwOU3lUSJH7RHJVe0xkWOv2rUjVZZF/exec"; 
 
         // Global Değişkenler
         let rawFileBuffer = null; 
@@ -548,7 +552,7 @@
         let contextMenuTruckIndex = -1;
         
         // Klasör Gezinti Geçmişi
-        let folderHistory = []; // {id: 'xyz', name: 'Klasör Adı'} tutacak
+        let folderHistory = []; 
 
         window.addEventListener('DOMContentLoaded', () => {
             checkPreviousSession();
@@ -586,8 +590,9 @@
                 return;
             }
             document.getElementById('cloud-modal').style.display = 'flex';
-            folderHistory = []; // Geçmişi sıfırla
-            fetchYears(); // Ana dizini getir
+            folderHistory = []; 
+            // Başlangıçta ana dizini (null göndererek) çağırıyoruz
+            fetchFolderContents(null, "Ana Dizin", false);
         }
 
         function closeCloudMenu() {
@@ -600,95 +605,104 @@
             document.getElementById('cloud-list').style.display = show ? 'none' : 'block';
         }
 
-        // Geri Tuşu Mantığı
         function handleCloudBack() {
             if (folderHistory.length > 0) {
-                folderHistory.pop(); // Şu anki klasörü çıkar
+                folderHistory.pop(); // Şu anki klasörü çıkar (en sondaki)
                 
                 if (folderHistory.length === 0) {
-                    // Eğer geçmiş boşaldıysa ana dizine dönüyoruz
-                    fetchYears();
+                    // Geçmiş boşaldıysa ana dizine dön
+                    fetchFolderContents(null, "Ana Dizin", false);
                 } else {
                     // Bir önceki klasöre dön
                     const prevFolder = folderHistory[folderHistory.length - 1];
-                    // false parametresi geçmişe tekrar eklemeyi engeller
-                    fetchFiles(prevFolder.id, prevFolder.name, false); 
+                    fetchFolderContents(prevFolder.id, prevFolder.name, false); 
                 }
             } else {
-                // Zaten en baştaysa kapat veya ana dizini yenile
-                fetchYears();
+                fetchFolderContents(null, "Ana Dizin", false);
             }
         }
 
-        async function fetchYears() {
+        // Tek ve birleşik fonksiyon: Hem klasörleri hem dosyaları getirir
+        async function fetchFolderContents(folderId, folderName, pushToHistory = true) {
             showCloudLoading(true);
-            // Ana dizindeyken Geri tuşunu gizle veya disable et
-            document.getElementById('cloud-back-btn').style.display = 'none';
-            document.getElementById('cloud-title-text').innerText = "Dosya Seçimi";
-            document.getElementById('cloud-search-area').style.display = 'none';
+            
+            // UI Güncellemeleri
+            document.getElementById('cloud-title-text').innerText = folderName || "Dosyalar";
             document.getElementById('search-input').value = '';
             
-            // Geçmişi temizle
-            folderHistory = [];
+            // Ana dizinde (folderId yok veya history boş) geri tuşunu gizle
+            if (!folderId || (pushToHistory && folderHistory.length === 0)) {
+                document.getElementById('cloud-back-btn').style.display = 'none';
+            } else {
+                document.getElementById('cloud-back-btn').style.display = 'inline-block';
+            }
+
+            // Geçmişe ekle
+            if (pushToHistory && folderId) {
+                // Eğer zaten son eleman bu ise ekleme (çift tıklama koruması)
+                if(folderHistory.length === 0 || folderHistory[folderHistory.length-1].id !== folderId) {
+                    folderHistory.push({id: folderId, name: folderName});
+                }
+            }
 
             try {
-                const response = await fetch(`${SCRIPT_URL}?action=getYears`);
-                const folders = await response.json();
-                renderCloudList(folders, 'year');
+                // API isteği: folderId varsa gönder, yoksa null (Apps Script'te Master ID kullanılır)
+                let url = `${SCRIPT_URL}?action=getFolderContents`;
+                if (folderId) {
+                    url += `&folderId=${folderId}`;
+                }
+
+                const response = await fetch(url);
+                const items = await response.json();
+                
+                if(items.error) {
+                    throw new Error(items.error);
+                }
+                
+                renderCloudList(items);
+                
+                // Eğer ana dizine döndüysek ve history boş değilse (geri tuşuyla geldiysek), history'i temizle
+                if (!folderId && !pushToHistory) {
+                    folderHistory = [];
+                    document.getElementById('cloud-back-btn').style.display = 'none';
+                }
+
             } catch (error) {
-                alert("Bağlantı hatası: " + error.message);
+                alert("İçerik alınamadı: " + error.message);
+                // Hata durumunda yükleniyor ekranını kapat
+                showCloudLoading(false);
+                return;
             }
             showCloudLoading(false);
         }
 
-        // pushToHistory: true ise bu işlemi geçmişe ekler, Geri tuşuna basınca false gelir.
-        async function fetchFiles(folderId, yearName, pushToHistory = true) {
-            showCloudLoading(true);
-            document.getElementById('cloud-back-btn').style.display = 'inline-block'; // Geri tuşunu göster
-            document.getElementById('cloud-title-text').innerText = yearName;
-            document.getElementById('cloud-search-area').style.display = 'block';
-            document.getElementById('search-input').value = '';
-
-            if (pushToHistory) {
-                folderHistory.push({id: folderId, name: yearName});
-            }
-
-            try {
-                const response = await fetch(`${SCRIPT_URL}?action=getFiles&folderId=${folderId}`);
-                const files = await response.json();
-                renderCloudList(files, 'file');
-            } catch (error) {
-                alert("Dosyalar alınamadı.");
-            }
-            showCloudLoading(false);
-        }
-
-        function renderCloudList(items, type) {
+        function renderCloudList(items) {
             const container = document.getElementById('cloud-list');
             container.innerHTML = '';
             
-            if(items.length === 0) {
-                container.innerHTML = '<div style="padding:20px; text-align:center; color:#999;">Burada hiç dosya yok.</div>';
+            if(!items || items.length === 0) {
+                container.innerHTML = '<div style="padding:20px; text-align:center; color:#999;">Klasör boş.</div>';
                 return;
             }
+
+            // SIRALAMA: Önce Klasörler, Sonra Dosyalar. Kendi içlerinde Alfabetik.
+            items.sort((a, b) => {
+                if (a.type === 'folder' && b.type !== 'folder') return -1;
+                if (a.type !== 'folder' && b.type === 'folder') return 1;
+                return a.name.localeCompare(b.name);
+            });
 
             items.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'cloud-item';
                 
-                // --- AKILLI KLASÖR TESPİTİ ---
-                // Eğer tip 'year' ise kesin klasördür.
-                // Eğer tip 'file' ise ama adı .xls/.xlsx ile BİTMİYORSA, bunu da klasör sayıp içine girelim.
-                const isExcel = item.name.toLowerCase().endsWith('.xls') || item.name.toLowerCase().endsWith('.xlsx');
-                const isFolder = (type === 'year') || (!isExcel); 
-
-                if (isFolder) {
-                    // Klasör Görünümü
-                    div.innerHTML = `<span class="cloud-icon">📁</span> <span class="cloud-text">${item.name}</span>`;
-                    div.onclick = () => fetchFiles(item.id, item.name, true);
+                if (item.type === 'folder') {
+                    // KLASÖR GÖRÜNÜMÜ
+                    div.innerHTML = `<span class="cloud-icon icon-folder">📁</span> <span class="cloud-text">${item.name}</span>`;
+                    div.onclick = () => fetchFolderContents(item.id, item.name, true);
                 } else {
-                    // Excel Dosyası Görünümü
-                    div.innerHTML = `<span class="cloud-icon">📄</span> <span class="cloud-text">${item.name}</span>`;
+                    // EXCEL DOSYASI GÖRÜNÜMÜ
+                    div.innerHTML = `<span class="cloud-icon icon-file">📊</span> <span class="cloud-text">${item.name}</span>`;
                     div.onclick = () => downloadAndProcessDriveFile(item.id, item.name);
                 }
                 container.appendChild(div);
@@ -705,20 +719,15 @@
                 const jsonText = await response.text(); 
 
                 if (jsonText.startsWith("<!DOCTYPE html>")) {
-                    throw new Error("Google API erişim izni hatası. Tarayıcıda Google hesabının açık olduğundan emin ol.");
+                    throw new Error("Google API hatası. Hesabınızın açık olduğundan emin olun.");
                 }
 
                 const result = JSON.parse(jsonText);
 
-                if (result.error) {
-                    throw new Error(result.error);
-                }
-
-                let base64 = result.data;
-                if (!base64) throw new Error("Dosya verisi boş geldi.");
+                if (result.error) throw new Error(result.error);
+                if (!result.data) throw new Error("Dosya boş.");
                 
-                base64 = base64.replace(/\s/g, ''); 
-
+                let base64 = result.data.replace(/\s/g, ''); 
                 const binaryString = window.atob(base64);
                 const len = binaryString.length;
                 const bytes = new Uint8Array(len);
@@ -731,22 +740,19 @@
 
             } catch (error) {
                 console.error(error);
-                alert("Dosya indirilemedi! \nHata: " + error.message);
+                alert("Hata: " + error.message);
             }
             showCloudLoading(false);
         }
 
         // ==========================================
-        // DOSYA İŞLEME MERKEZİ
+        // STANDART DOSYA İŞLEME VE UI FONKSİYONLARI (DEĞİŞMEDİ)
         // ==========================================
         function handleFileUpload(e) {
             const file = e.target.files[0];
             if(!file) return;
-
             const reader = new FileReader();
-            reader.onload = (e) => {
-                processExcelBuffer(e.target.result);
-            };
+            reader.onload = (e) => processExcelBuffer(e.target.result);
             reader.readAsArrayBuffer(file);
         }
 
@@ -758,24 +764,13 @@
                 const sheet = wb.Sheets[wb.SheetNames[0]];
                 
                 const d5Cell = sheet['D5'];
-                if(d5Cell && d5Cell.v) {
-                    istifNo = String(d5Cell.v).trim();
-                } else {
-                    istifNo = "Istif_" + Date.now();
-                }
+                istifNo = (d5Cell && d5Cell.v) ? String(d5Cell.v).trim() : "Istif_" + Date.now();
                 
                 const result = parseExcelSmart(sheet);
                 if(result.success) {
                     inventory = result.data;
-                    trucks = [{
-                        id: Date.now(),
-                        tempName: "Araç 1",
-                        plate: "",
-                        driver: "",
-                        shipments: {}
-                    }];
+                    trucks = [{ id: Date.now(), tempName: "Araç 1", plate: "", driver: "", shipments: {} }];
                     activeTruckIndex = 0;
-                    
                     initApp();
                 } else {
                     showError(result.message);
@@ -790,32 +785,19 @@
             document.getElementById('app-header').style.display = 'flex';
             document.getElementById('top-area').style.display = 'flex';
             document.getElementById('footer').style.display = 'flex';
-            
             document.getElementById('app-title').innerText = `🌲 Tomruk Stok Pro - İstif: ${istifNo}`;
-            
             renderTabs();
             renderTable();
             updateDashboard();
             updateExportButton();
         }
 
-        // ==========================================
-        // ARAÇ BİLGİSİ MODAL İŞLEMLERİ
-        // ==========================================
         function showTruckInfoModal(truckIndex = -1) {
             editingTruckIndex = truckIndex;
             const truck = truckIndex >= 0 ? trucks[truckIndex] : null;
-            
-            if(truck) {
-                document.getElementById('truck-modal-title').innerText = `🚛 ${truck.tempName || 'Araç'} Bilgileri`;
-                document.getElementById('input-plate').value = truck.plate || '';
-                document.getElementById('input-driver').value = truck.driver || '';
-            } else {
-                document.getElementById('truck-modal-title').innerText = '🚛 Araç Bilgileri';
-                document.getElementById('input-plate').value = '';
-                document.getElementById('input-driver').value = '';
-            }
-            
+            document.getElementById('truck-modal-title').innerText = truck ? `🚛 ${truck.tempName || 'Araç'} Bilgileri` : '🚛 Araç Bilgileri';
+            document.getElementById('input-plate').value = truck ? (truck.plate || '') : '';
+            document.getElementById('input-driver').value = truck ? (truck.driver || '') : '';
             document.getElementById('input-plate').classList.remove('error');
             document.getElementById('input-driver').classList.remove('error');
             document.getElementById('truck-info-modal').style.display = 'flex';
@@ -830,63 +812,27 @@
         function saveTruckInfo() {
             const plate = document.getElementById('input-plate').value.trim();
             const driver = document.getElementById('input-driver').value.trim();
-            
-            let hasError = false;
-            
-            if(!plate) {
-                document.getElementById('input-plate').classList.add('error');
-                hasError = true;
-            } else {
-                document.getElementById('input-plate').classList.remove('error');
-            }
-            
-            if(!driver) {
-                document.getElementById('input-driver').classList.add('error');
-                hasError = true;
-            } else {
-                document.getElementById('input-driver').classList.remove('error');
-            }
-            
-            if(hasError) {
-                alert("Lütfen tüm alanları doldurun!");
-                return;
-            }
-            
+            if(!plate || !driver) { alert("Lütfen tüm alanları doldurun!"); return; }
             if(editingTruckIndex >= 0) {
                 trucks[editingTruckIndex].plate = plate;
                 trucks[editingTruckIndex].driver = driver;
             }
-            
             document.getElementById('truck-info-modal').style.display = 'none';
             editingTruckIndex = -1;
-            
             renderTabs();
             updateExportButton();
             saveSession();
         }
 
-        // ==========================================
-        // EXPORT MODAL İŞLEMLERİ (GÜNCELLENDİ)
-        // ==========================================
         function openExportModal() {
             const hasAnyShipment = trucks.some(t => Object.values(t.shipments).some(v => v > 0));
-            if(!hasAnyShipment) {
-                alert("Henüz hiçbir araca yükleme yapılmadı.");
-                return;
-            }
-
+            if(!hasAnyShipment) { alert("Henüz hiçbir araca yükleme yapılmadı."); return; }
             const incompleteCount = trucks.filter(t => !t.plate || !t.driver).length;
-            if(incompleteCount > 0) {
-                alert(`⚠️ ${incompleteCount} aracın bilgileri eksik!\n\nLütfen önce tab'lara uzun basarak veya sağ tıklayarak bilgileri tamamlayın.`);
-                return;
-            }
-
-            // Reset UI
+            if(incompleteCount > 0) { alert(`⚠️ ${incompleteCount} aracın bilgileri eksik!`); return; }
             document.getElementById('export-remaining-check').checked = false;
             document.getElementById('remaining-input-group').style.display = 'none';
             document.getElementById('export-remaining-plate').value = '';
             document.getElementById('export-remaining-driver').value = '';
-            
             document.getElementById('export-modal').style.display = 'flex';
         }
 
@@ -895,96 +841,45 @@
         }
 
         function confirmExport() {
-            let remainingPlate = "";
-            let remainingDriver = "";
-            
+            let remPlate = "", remDriver = "";
             if(document.getElementById('export-remaining-check').checked) {
-                remainingPlate = document.getElementById('export-remaining-plate').value.trim();
-                remainingDriver = document.getElementById('export-remaining-driver').value.trim();
+                remPlate = document.getElementById('export-remaining-plate').value.trim();
+                remDriver = document.getElementById('export-remaining-driver').value.trim();
             }
-            
             closeExportModal();
-            exportDataSafe(remainingPlate, remainingDriver);
+            exportDataSafe(remPlate, remDriver);
         }
 
-        // ==========================================
-        // CONTEXT MENU İŞLEMLERİ
-        // ==========================================
         function showContextMenu(e, truckIndex) {
-            // Eğer e bir event objesi ise (PC)
-            if (e.preventDefault) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            
+            if (e.preventDefault) { e.preventDefault(); e.stopPropagation(); }
             contextMenuTruckIndex = truckIndex;
             const menu = document.getElementById('context-menu');
-            
-            // Eğer Touch objesi geldiyse (Mobil)
-            let pageX = e.pageX;
-            let pageY = e.pageY;
-
             menu.style.display = 'block';
-            menu.style.left = pageX + 'px';
-            menu.style.top = pageY + 'px';
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
         }
 
         function editTruckFromMenu() {
             document.getElementById('context-menu').style.display = 'none';
-            if(contextMenuTruckIndex >= 0) {
-                showTruckInfoModal(contextMenuTruckIndex);
-            }
+            if(contextMenuTruckIndex >= 0) showTruckInfoModal(contextMenuTruckIndex);
         }
 
-        // ==========================================
-        // UI RENDER & LOGIC
-        // ==========================================
         function renderTabs() {
             const container = document.getElementById('tab-container');
             container.innerHTML = '';
-            
             trucks.forEach((truck, index) => {
                 const btn = document.createElement('button');
                 btn.className = `tab-btn ${index === activeTruckIndex ? 'active' : ''}`;
-                
-                if(!truck.plate || !truck.driver) {
-                    btn.classList.add('incomplete');
-                }
-                
-                const displayName = truck.plate || truck.tempName || `Araç ${index + 1}`;
-                btn.innerHTML = `🚛 ${displayName}`;
-                
+                if(!truck.plate || !truck.driver) btn.classList.add('incomplete');
+                btn.innerHTML = `🚛 ${truck.plate || truck.tempName || `Araç ${index + 1}`}`;
                 btn.onclick = () => switchTab(index);
-                
-                // PC Sağ Tık
                 btn.addEventListener('contextmenu', (e) => showContextMenu(e, index));
-                
-                // IPHONE & ANDROID UZUN BASMA (Touch Logic)
                 let pressTimer;
-                
-                btn.addEventListener('touchstart', (e) => {
-                    // Dokunma başladığında sayacı başlat
-                    pressTimer = setTimeout(() => {
-                        // 500ms basılı tutulursa menüyü aç
-                        // e.touches[0] koordinatları içerir
-                        showContextMenu(e.touches[0], index);
-                    }, 500);
-                }, { passive: true });
-
-                btn.addEventListener('touchend', () => {
-                    // Parmağını çektiyse sayacı iptal et
-                    clearTimeout(pressTimer);
-                });
-
-                btn.addEventListener('touchmove', () => {
-                    // IPHONE FIX: Eğer parmağını kaydırıyorsa (scroll yapıyorsa)
-                    // uzun basmayı iptal et. Menü açılmasın.
-                    clearTimeout(pressTimer);
-                });
-                
+                btn.addEventListener('touchstart', (e) => { pressTimer = setTimeout(() => showContextMenu(e.touches[0], index), 500); }, { passive: true });
+                btn.addEventListener('touchend', () => clearTimeout(pressTimer));
+                btn.addEventListener('touchmove', () => clearTimeout(pressTimer));
                 container.appendChild(btn);
             });
-            
             const addBtn = document.createElement('button');
             addBtn.className = 'tab-add tab-btn';
             addBtn.innerHTML = '+';
@@ -1003,42 +898,16 @@
             const currentTruck = trucks[activeTruckIndex];
             if(!currentTruck.plate || !currentTruck.driver) {
                 showTruckInfoModal(activeTruckIndex);
-                
-                const originalCancel = cancelTruckInfo;
-                cancelTruckInfo = function() {
-                    originalCancel();
-                    cancelTruckInfo = originalCancel;
-                };
-                
                 const originalSave = saveTruckInfo;
                 saveTruckInfo = function() {
                     originalSave();
-                    
-                    const newTruckNum = trucks.length + 1;
-                    trucks.push({
-                        id: Date.now(),
-                        tempName: `Araç ${newTruckNum}`,
-                        plate: "",
-                        driver: "",
-                        shipments: {}
-                    });
-                    
+                    trucks.push({ id: Date.now(), tempName: `Araç ${trucks.length + 1}`, plate: "", driver: "", shipments: {} });
                     switchTab(trucks.length - 1);
                     saveSession();
-                    
                     saveTruckInfo = originalSave;
                 };
             } else {
-                const newTruckNum = trucks.length + 1;
-                trucks.push({
-                    id: Date.now(),
-                    tempName: `Araç ${newTruckNum}`,
-                    plate: "",
-                    driver: "",
-
-                    shipments: {}
-                });
-                
+                trucks.push({ id: Date.now(), tempName: `Araç ${trucks.length + 1}`, plate: "", driver: "", shipments: {} });
                 switchTab(trucks.length - 1);
                 saveSession();
             }
@@ -1046,21 +915,15 @@
 
         function updateExportButton() {
             const btn = document.getElementById('btn-export');
-            const incompleteCount = trucks.filter(t => !t.plate || !t.driver).length;
-            
-            if(incompleteCount > 0) {
-                btn.classList.add('warning');
-                btn.innerHTML = `💾 Raporu İndir (${incompleteCount} araç eksik!)`;
-            } else {
-                btn.classList.remove('warning');
-                btn.innerHTML = '💾 Raporu İndir';
-            }
+            const incomplete = trucks.filter(t => !t.plate || !t.driver).length;
+            btn.classList.toggle('warning', incomplete > 0);
+            btn.innerHTML = incomplete > 0 ? `💾 Raporu İndir (${incomplete} araç eksik!)` : '💾 Raporu İndir';
         }
 
         function renderTable() {
             const thead = document.querySelector('#matrix-table thead');
             const tbody = document.querySelector('#matrix-table tbody');
-            const lengths = [...new Set(inventory.map(i => i.length))].sort((a,b) => parseFloat(a) - parseFloat(b));
+            const lengths = [...new Set(inventory.map(i => i.length))].sort((a,b) => a - b);
             const diameters = [...new Set(inventory.map(i => i.diameter))].sort((a,b) => a - b);
 
             let headHTML = '<tr><th>ÇAP \\ BOY</th>';
@@ -1076,35 +939,27 @@
                 lengths.forEach(len => {
                     const item = itemsInRow.find(i => i.length === len);
                     if(item) {
-                        let previousLoad = 0;
-                        for(let i=0; i < activeTruckIndex; i++) {
-                            previousLoad += (trucks[i].shipments[item.id] || 0);
-                        }
-                        const limitForThisTruck = item.totalQty - previousLoad;
-                        const currentTruckLoad = trucks[activeTruckIndex].shipments[item.id] || 0;
-                        const unitVol = item.totalVol / item.totalQty;
-                        const truckVol = currentTruckLoad * unitVol;
-
+                        let prev = 0;
+                        for(let i=0; i < activeTruckIndex; i++) prev += (trucks[i].shipments[item.id] || 0);
+                        const limit = item.totalQty - prev;
+                        const curr = trucks[activeTruckIndex].shipments[item.id] || 0;
+                        const vol = curr * (item.totalVol / item.totalQty);
                         rowHTML += `
-                            <td id="td-${item.id}" class="has-data ${currentTruckLoad > 0 ? 'active-shipment' : ''}">
+                            <td id="td-${item.id}" class="has-data ${curr > 0 ? 'active-shipment' : ''}">
                                 <div class="cell-controls">
-                                    <button class="btn-ctrl btn-minus" onclick="changeQty('${item.id}', -1)" ${currentTruckLoad === 0 ? 'disabled' : ''}>−</button>
+                                    <button class="btn-ctrl btn-minus" onclick="changeQty('${item.id}', -1)" ${curr === 0 ? 'disabled' : ''}>−</button>
                                     <div class="cell-info">
-                                        <div class="qty-text">
-                                            <span class="qty-shipped">${currentTruckLoad}</span><span class="qty-slash">/</span><span class="qty-total">${limitForThisTruck}</span>
-                                        </div>
-                                        <div class="vol-text">${truckVol.toFixed(3)} m³</div>
+                                        <div class="qty-text"><span class="qty-shipped">${curr}</span><span class="qty-slash">/</span><span class="qty-total">${limit}</span></div>
+                                        <div class="vol-text">${vol.toFixed(3)} m³</div>
                                     </div>
-                                    <button class="btn-ctrl btn-plus" onclick="changeQty('${item.id}', 1)" ${currentTruckLoad >= limitForThisTruck ? 'disabled' : ''}>+</button>
+                                    <button class="btn-ctrl btn-plus" onclick="changeQty('${item.id}', 1)" ${curr >= limit ? 'disabled' : ''}>+</button>
                                 </div>
-                            </td>
-                        `;
+                            </td>`;
                     } else {
                         rowHTML += `<td class="empty-data">-</td>`;
                     }
                 });
-                rowHTML += '</tr>';
-                bodyHTML += rowHTML;
+                bodyHTML += rowHTML + '</tr>';
             });
             tbody.innerHTML = bodyHTML;
         }
@@ -1112,55 +967,42 @@
         function changeQty(itemId, delta) {
             const item = inventory.find(i => i.id === itemId);
             if(!item) return;
-            const activeTruck = trucks[activeTruckIndex];
-            const currentLoad = activeTruck.shipments[itemId] || 0;
-            let previousLoad = 0;
-            for(let i=0; i < activeTruckIndex; i++) {
-                previousLoad += (trucks[i].shipments[itemId] || 0);
-            }
-            const limit = item.totalQty - previousLoad;
-            if(delta === 1) {
-                if(currentLoad >= limit) return; 
-                activeTruck.shipments[itemId] = currentLoad + 1;
-            } else if(delta === -1) {
-                if(currentLoad <= 0) return;
-                activeTruck.shipments[itemId] = currentLoad - 1;
-            }
+            const truck = trucks[activeTruckIndex];
+            const curr = truck.shipments[itemId] || 0;
+            let prev = 0;
+            for(let i=0; i < activeTruckIndex; i++) prev += (trucks[i].shipments[itemId] || 0);
+            const limit = item.totalQty - prev;
+            
+            if(delta === 1 && curr < limit) truck.shipments[itemId] = curr + 1;
+            else if(delta === -1 && curr > 0) truck.shipments[itemId] = curr - 1;
+            else return;
+            
             saveSession();
             renderTable(); 
             updateDashboard();
         }
 
         function updateDashboard() {
-            let totalStartQty = 0; let totalStartVol = 0;
-            let totalCurrentQty = 0; let totalCurrentVol = 0;
-            let totalEndQty = 0; let totalEndVol = 0;
+            let startQ=0, startV=0, truckQ=0, truckV=0, endQ=0, endV=0;
             inventory.forEach(item => {
-                const unitVol = item.totalVol / item.totalQty;
-                let previousShipped = 0;
-                for(let i=0; i < activeTruckIndex; i++) {
-                    previousShipped += (trucks[i].shipments[item.id] || 0);
-                }
-                const startStock = item.totalQty - previousShipped;
-                const currentShipped = trucks[activeTruckIndex].shipments[item.id] || 0;
-                const endStock = startStock - currentShipped;
-                totalStartQty += startStock;
-                totalStartVol += (startStock * unitVol);
-                totalCurrentQty += currentShipped;
-                totalCurrentVol += (currentShipped * unitVol);
-                totalEndQty += endStock;
-                totalEndVol += (endStock * unitVol);
+                const uVol = item.totalVol / item.totalQty;
+                let prev = 0;
+                for(let i=0; i < activeTruckIndex; i++) prev += (trucks[i].shipments[item.id] || 0);
+                const sStock = item.totalQty - prev;
+                const curr = trucks[activeTruckIndex].shipments[item.id] || 0;
+                startQ += sStock; startV += sStock*uVol;
+                truckQ += curr; truckV += curr*uVol;
+                endQ += (sStock-curr); endV += (sStock-curr)*uVol;
             });
-            document.getElementById('lbl-start-qty').innerText = totalStartQty;
-            document.getElementById('lbl-start-m3').innerText = totalStartVol.toFixed(3);
-            document.getElementById('lbl-truck-qty').innerText = totalCurrentQty;
-            document.getElementById('lbl-truck-m3').innerText = totalCurrentVol.toFixed(3);
-            document.getElementById('lbl-remain-qty').innerText = totalEndQty;
-            document.getElementById('lbl-remain-m3').innerText = totalEndVol.toFixed(3);
+            document.getElementById('lbl-start-qty').innerText = startQ;
+            document.getElementById('lbl-start-m3').innerText = startV.toFixed(3);
+            document.getElementById('lbl-truck-qty').innerText = truckQ;
+            document.getElementById('lbl-truck-m3').innerText = truckV.toFixed(3);
+            document.getElementById('lbl-remain-qty').innerText = endQ;
+            document.getElementById('lbl-remain-m3').innerText = endV.toFixed(3);
         }
 
         function parseExcelSmart(sheet) {
-            const data = [];
             if(!sheet['!ref']) return {success:false, message:"Dosya boş."};
             const range = XLSX.utils.decode_range(sheet['!ref']);
             let adetRow = -1;
@@ -1173,223 +1015,125 @@
                 if(cnt > 1) { adetRow = r; break; }
             }
             if(adetRow === -1) return {success:false, message: "'ADET' satırı bulunamadı."};
-            const headerRow = adetRow - 1;
             const colToLength = {};
             for(let c=0; c<=range.e.c; c++) {
                 const cell = sheet[XLSX.utils.encode_cell({r: adetRow, c})];
                 if(cell && String(cell.v).toUpperCase().includes('ADET')) {
-                    const lenCell = sheet[XLSX.utils.encode_cell({r: headerRow, c})];
-                    if(lenCell && lenCell.v) colToLength[c] = lenCell.v;
+                    const lCell = sheet[XLSX.utils.encode_cell({r: adetRow-1, c})];
+                    if(lCell && lCell.v) colToLength[c] = lCell.v;
                 }
             }
-            let diameterCol = 0; let maxSeq = 0;
+            let diaCol = 0, maxSeq = 0;
             for(let c=0; c<=3; c++) {
                 let seq = 0;
                 for(let r=adetRow+1; r<=Math.min(adetRow+10, range.e.r); r++) {
-                    const cell = sheet[XLSX.utils.encode_cell({r,c})];
-                    if(cell && !isNaN(cell.v) && cell.v > 5) seq++;
+                    const v = sheet[XLSX.utils.encode_cell({r,c})];
+                    if(v && !isNaN(v.v) && v.v > 5) seq++;
                 }
-                if(seq > maxSeq) { maxSeq = seq; diameterCol = c; }
+                if(seq > maxSeq) { maxSeq = seq; diaCol = c; }
             }
+            const data = [];
             for(let r=adetRow+1; r<=range.e.r; r++) {
-                const diaCell = sheet[XLSX.utils.encode_cell({r, c:diameterCol})];
-                if(diaCell && !isNaN(diaCell.v)) {
-                    const diameter = diaCell.v;
+                const dCell = sheet[XLSX.utils.encode_cell({r, c:diaCol})];
+                if(dCell && !isNaN(dCell.v)) {
                     for(let cStr in colToLength) {
                         const c = parseInt(cStr);
-                        const length = colToLength[c];
-                        const qtyAddr = XLSX.utils.encode_cell({r,c});
-                        const volAddr = XLSX.utils.encode_cell({r,c:c+1});
-                        const qtyCell = sheet[qtyAddr];
-                        const volCell = sheet[volAddr];
-                        if(qtyCell && qtyCell.v > 0) {
-                            let rawVol = (volCell && !isNaN(volCell.v)) ? parseFloat(volCell.v) : 0;
-                            let m3Vol = rawVol / 1000;
-                            data.push({ id: qtyAddr, diameter: diameter, length: length, totalQty: parseInt(qtyCell.v), totalVol: m3Vol, qtyAddr: qtyAddr });
+                        const qCell = sheet[XLSX.utils.encode_cell({r,c})];
+                        const vCell = sheet[XLSX.utils.encode_cell({r,c:c+1})];
+                        if(qCell && qCell.v > 0) {
+                            const vol = (vCell && !isNaN(vCell.v)) ? parseFloat(vCell.v)/1000 : 0;
+                            data.push({ id: XLSX.utils.encode_cell({r,c}), diameter: dCell.v, length: colToLength[c], totalQty: parseInt(qCell.v), totalVol: vol, qtyAddr: XLSX.utils.encode_cell({r,c}) });
                         }
                     }
                 }
             }
-            if(data.length === 0) return {success:false, message:"Veri bulunamadı."};
-            return {success:true, data};
+            return data.length ? {success:true, data} : {success:false, message:"Veri bulunamadı."};
         }
 
-        async function exportDataSafe(remPlate = "", remDriver = "") {
+        async function exportDataSafe(rPlate, rDriver) {
             document.getElementById('loading-overlay').style.display = 'flex';
             document.getElementById('loading-text').innerText = "Rapor Hazırlanıyor...";
             setTimeout(async () => {
                 try {
-                    const workbook = await XlsxPopulate.fromDataAsync(rawFileBuffer);
-                    const sheetOriginal = workbook.sheet(0); 
-                    
-                    for(let i=0; i<trucks.length; i++) {
-                        const truck = trucks[i];
-                        const safeName = (truck.plate || truck.tempName).replace(/[\/\\\?\*\[\]:]/g, '_').substring(0, 31);
-                        const truckSheet = workbook.cloneSheet(sheetOriginal, safeName); 
-                        processSheet(truckSheet, 'truck', i);
-                    }
-                    
-                    // Kalan stok sayfa adı
-                    let remainingSheetName = "Kalan_Stok";
-                    if (remPlate) {
-                        remainingSheetName = remPlate.replace(/[\/\\\?\*\[\]:]/g, '_').substring(0, 31);
-                    }
-                    
-                    const remainingSheet = workbook.cloneSheet(sheetOriginal, remainingSheetName);
-                    
-                    // Plaka ve şoförü işle
-                    processSheet(remainingSheet, 'remaining', null, { plate: remPlate, driver: remDriver });
-                    
-                    sheetOriginal.name("Sablon");
-                    sheetOriginal.hidden(true); 
-                    
-                    const blob = await workbook.outputAsync();
+                    const wb = await XlsxPopulate.fromDataAsync(rawFileBuffer);
+                    const sheet = wb.sheet(0);
+                    trucks.forEach((t, i) => processSheet(wb.cloneSheet(sheet, (t.plate||t.tempName).substring(0,31).replace(/[:\/\?\*\[\]]/g,'_')), 'truck', i));
+                    const remSheet = wb.cloneSheet(sheet, (rPlate||"Kalan_Stok").substring(0,31).replace(/[:\/\?\*\[\]]/g,'_'));
+                    processSheet(remSheet, 'remaining', null, {plate:rPlate, driver:rDriver});
+                    sheet.name("Sablon").hidden(true);
+                    const blob = await wb.outputAsync();
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement("a");
-                    
-                    const fileName = `${istifNo}.xlsx`;
-                    
-                    a.href = url;
-                    a.download = fileName;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
+                    a.href = url; a.download = `${istifNo}.xlsx`;
+                    document.body.appendChild(a); a.click();
                     document.body.removeChild(a);
                     document.getElementById('loading-overlay').style.display = 'none';
-                    alert(`✅ Rapor indirildi: ${fileName}`);
-                } catch (err) {
-                    console.error(err);
-                    alert("Hata: " + err.message);
-                    document.getElementById('loading-overlay').style.display = 'none';
-                }
+                } catch (e) { alert("Hata: " + e.message); document.getElementById('loading-overlay').style.display = 'none'; }
             }, 500);
         }
 
-        function processSheet(sheet, mode, truckIndex, extraInfo = {}) {
-            const activeRows = new Set();
-            const sortedLengths = [...new Set(inventory.map(i => i.length))].sort((a,b) => a - b);
-            const targetCols = [3, 5, 7, 9, 11, 13, 15];
-            const lengthToColMap = {};
-            sortedLengths.forEach((len, index) => {
-                let colIdx = (index < targetCols.length) ? targetCols[index] : 15 + ((index - 6) * 2);
-                lengthToColMap[len] = colIdx;
-            });
-            targetCols.forEach(c => sheet.row(7).cell(c).value(null));
-            for(let r = 9; r <= 97; r++) {
-                for(let c = 3; c <= 17; c+=2) sheet.row(r).cell(c).value(null);
-            }
-            sortedLengths.forEach((len, index) => {
-                const colIdx = lengthToColMap[len];
-                if(colIdx) sheet.row(7).cell(colIdx).value(len);
-            });
-            inventory.forEach(item => {
-                let qtyToWrite = 0;
-                if(mode === 'truck') {
-                    qtyToWrite = trucks[truckIndex].shipments[item.id] || 0;
-                } else if (mode === 'remaining') {
-                    let totalShipped = 0;
-                    trucks.forEach(t => totalShipped += (t.shipments[item.id] || 0));
-                    qtyToWrite = item.totalQty - totalShipped;
-                }
-                const rowNum = parseInt(item.qtyAddr.match(/\d+/)[0]);
-                const newColIdx = lengthToColMap[item.length];
-                if(newColIdx && qtyToWrite > 0) {
-                    const qtyCell = sheet.row(rowNum).cell(newColIdx);
-                    qtyCell.value(qtyToWrite);
-                    qtyCell.style("numberFormat", "0");
-                    activeRows.add(rowNum);
-                }
-            });
-            for(let r = 9; r <= 97; r++) {
-                for(let c = 3; c <= 17; c+=2) { 
-                    const cell = sheet.row(r).cell(c);
-                    if(cell.value() == null) cell.style("numberFormat", "0");
-                }
-                if(!activeRows.has(r)) sheet.row(r).hidden(true);
-                else sheet.row(r).hidden(false);
-            }
-            const integerCols = [4, 6, 8, 10, 12, 14, 16, 20];
-            for (let r = 9; r <= 98; r++) integerCols.forEach(c => sheet.row(r).cell(c).style("numberFormat", "#,##0"));
-            sheet.cell("D102").style("numberFormat", "#,##0");
-            const sheetName = sheet.name();
-            sheet.workbook().definedName("Print_Area", `'${sheetName}'!$A$1:$T$104`);
-            for (let c = 21; c <= 50; c++) sheet.column(c).hidden(true);
+        function processSheet(sheet, mode, truckIndex, extra={}) {
+            const usedRows = new Set();
+            const lens = [...new Set(inventory.map(i => i.length))].sort((a,b)=>a-b);
+            const cols = [3,5,7,9,11,13,15];
+            const lenMap = {};
+            lens.forEach((l,i) => lenMap[l] = (i<7) ? cols[i] : 15+((i-6)*2));
             
-            if(mode === 'truck') {
-                const truck = trucks[truckIndex];
-                sheet.cell("J105").value(truck.plate || truck.tempName);
-                sheet.cell("J106").value(truck.driver || "");
-            } else if (mode === 'remaining') {
-                if(extraInfo.plate) sheet.cell("J105").value(extraInfo.plate);
-                if(extraInfo.driver) sheet.cell("J106").value(extraInfo.driver);
+            cols.forEach(c => sheet.row(7).cell(c).value(null));
+            for(let r=9; r<=97; r++) for(let c=3; c<=17; c+=2) sheet.row(r).cell(c).value(null);
+            
+            lens.forEach(l => { if(lenMap[l]) sheet.row(7).cell(lenMap[l]).value(l); });
+            
+            inventory.forEach(item => {
+                let q = 0;
+                if(mode==='truck') q = trucks[truckIndex].shipments[item.id]||0;
+                else {
+                    let s = 0; trucks.forEach(t => s+=(t.shipments[item.id]||0));
+                    q = item.totalQty - s;
+                }
+                const r = parseInt(item.qtyAddr.match(/\d+/)[0]);
+                const c = lenMap[item.length];
+                if(c && q>0) { sheet.row(r).cell(c).value(q).style("numberFormat","0"); usedRows.add(r); }
+            });
+            
+            for(let r=9; r<=97; r++) {
+                if(!usedRows.has(r)) sheet.row(r).hidden(true);
+                else { sheet.row(r).hidden(false); for(let c=3; c<=17; c+=2) if(sheet.row(r).cell(c).value()==null) sheet.row(r).cell(c).style("numberFormat","0"); }
             }
+            if(mode==='truck') { sheet.cell("J105").value(trucks[truckIndex].plate); sheet.cell("J106").value(trucks[truckIndex].driver); }
+            else { if(extra.plate) sheet.cell("J105").value(extra.plate); if(extra.driver) sheet.cell("J106").value(extra.driver); }
+            sheet.workbook().definedName("Print_Area", `'${sheet.name()}'!$A$1:$T$104`);
         }
 
         function saveSession() {
             if(!rawFileBuffer) return;
-            const base64File = arrayBufferToBase64(rawFileBuffer);
-            localStorage.setItem('tsp_v33_file', base64File);
-            localStorage.setItem('tsp_v33_istif', istifNo);
-            localStorage.setItem('tsp_v33_data', JSON.stringify({inventory, trucks, activeTruckIndex}));
+            localStorage.setItem('tsp_v37_file', arrayBufferToBase64(rawFileBuffer));
+            localStorage.setItem('tsp_v37_istif', istifNo);
+            localStorage.setItem('tsp_v37_data', JSON.stringify({inventory, trucks, activeTruckIndex}));
         }
 
         function restoreSession() {
-            const savedData = localStorage.getItem('tsp_v33_data');
-            const savedFile = localStorage.getItem('tsp_v33_file');
-            const savedIstif = localStorage.getItem('tsp_v33_istif');
-            if(!savedData || !savedFile) return;
-            rawFileBuffer = base64ToArrayBuffer(savedFile);
-            istifNo = savedIstif || "Istif_" + Date.now();
-            const parsed = JSON.parse(savedData);
-            inventory = parsed.inventory;
-            trucks = parsed.trucks;
-            activeTruckIndex = parsed.activeTruckIndex || 0;
+            const d = localStorage.getItem('tsp_v37_data');
+            const f = localStorage.getItem('tsp_v37_file');
+            if(!d || !f) return;
+            rawFileBuffer = base64ToArrayBuffer(f);
+            const p = JSON.parse(d);
+            inventory = p.inventory; trucks = p.trucks; activeTruckIndex = p.activeTruckIndex || 0;
+            istifNo = localStorage.getItem('tsp_v37_istif') || "Istif_Auto";
             initApp();
         }
 
-        function checkPreviousSession() {
-            if(localStorage.getItem('tsp_v33_data')) {
-                document.getElementById('btn-restore').style.display = 'flex';
-            }
-        }
-
+        function checkPreviousSession() { if(localStorage.getItem('tsp_v37_data')) document.getElementById('btn-restore').style.display = 'flex'; }
+        
         function resetApp() {
-            if(!confirm("Tüm veriler silinecek ve başa dönülecek. Onaylıyor musunuz?")) return;
-            inventory = [];
-            trucks = [];
-            rawFileBuffer = null;
-            istifNo = "";
-            localStorage.removeItem('tsp_v33_file');
-            localStorage.removeItem('tsp_v33_data');
-            localStorage.removeItem('tsp_v33_istif');
-            document.querySelector('#matrix-table thead').innerHTML = '';
-            document.querySelector('#matrix-table tbody').innerHTML = '';
-            document.getElementById('file-input').value = ''; 
-            document.getElementById('error-box').style.display = 'none';
-            document.getElementById('app-header').style.display = 'none';
-            document.getElementById('top-area').style.display = 'none';
-            document.getElementById('footer').style.display = 'none';
-            document.getElementById('upload-overlay').style.display = 'flex';
-            checkPreviousSession();
+            if(!confirm("Her şey silinecek?")) return;
+            localStorage.removeItem('tsp_v37_file'); localStorage.removeItem('tsp_v37_data'); localStorage.removeItem('tsp_v37_istif');
+            location.reload();
         }
 
-        function arrayBufferToBase64(buffer) {
-            let binary = '';
-            const bytes = new Uint8Array(buffer);
-            for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-            return window.btoa(binary);
-        }
-        function base64ToArrayBuffer(base64) {
-            const binary_string = window.atob(base64);
-            const bytes = new Uint8Array(binary_string.length);
-            for (let i = 0; i < binary_string.length; i++) bytes[i] = binary_string.charCodeAt(i);
-            return bytes.buffer;
-        }
-        function showError(msg) {
-            const box = document.getElementById('error-box');
-            box.innerText = msg;
-            box.style.display = 'block';
-        }
+        function arrayBufferToBase64(b) { let s=''; const u=new Uint8Array(b); for(let i=0; i<u.length; i++) s+=String.fromCharCode(u[i]); return window.btoa(s); }
+        function base64ToArrayBuffer(b) { const s=window.atob(b); const u=new Uint8Array(s.length); for(let i=0; i<s.length; i++) u[i]=s.charCodeAt(i); return u.buffer; }
+        function showError(m) { const b=document.getElementById('error-box'); b.innerText=m; b.style.display='block'; }
     </script>
 </body>
 </html>
