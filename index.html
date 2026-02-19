@@ -1102,7 +1102,7 @@
             }
             if(mode==='truck') { sheet.cell("J105").value(trucks[truckIndex].plate); sheet.cell("J106").value(trucks[truckIndex].driver); }
             else { if(extra.plate) sheet.cell("J105").value(extra.plate); if(extra.driver) sheet.cell("J106").value(extra.driver); }
-            sheet.workbook().definedName("Print_Area", `'${sheet.name()}'!$A$1:$T$104`);
+            sheet.pageSetup().printArea("B1:T107");
         }
 
         function saveSession() {
