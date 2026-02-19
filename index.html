@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Tomruk Stok Pro v3.8</title>
+    <title>Tomruk Stok Pro v3.9</title>
 
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' style='background-color: white;'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
@@ -582,7 +582,7 @@
         });
 
         // ==========================================
-        // CLOUD / DRIVE İŞLEMLERİ (GÜNCELLENDİ)
+        // CLOUD / DRIVE İŞLEMLERİ
         // ==========================================
         function openCloudMenu() {
             if(SCRIPT_URL.includes("BURAYA_")) {
@@ -746,7 +746,7 @@
         }
 
         // ==========================================
-        // STANDART DOSYA İŞLEME VE UI FONKSİYONLARI (DEĞİŞMEDİ)
+        // STANDART DOSYA İŞLEME VE UI FONKSİYONLARI
         // ==========================================
         function handleFileUpload(e) {
             const file = e.target.files[0];
@@ -1102,7 +1102,9 @@
             }
             if(mode==='truck') { sheet.cell("J105").value(trucks[truckIndex].plate); sheet.cell("J106").value(trucks[truckIndex].driver); }
             else { if(extra.plate) sheet.cell("J105").value(extra.plate); if(extra.driver) sheet.cell("J106").value(extra.driver); }
-            sheet.pageSetup().printArea("B1:T107");
+            
+            // HATA ÇÖZÜMÜ: Eski çalışan "definedName" yapısı hücre aralığı değiştirilerek geri getirildi
+            sheet.workbook().definedName("Print_Area", `'${sheet.name()}'!$B$1:$T$107`);
         }
 
         function saveSession() {
