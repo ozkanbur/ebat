@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Tomruk Stok Pro v3.7</title>
+    <title>Tomruk Stok Pro v3.8</title>
 
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' style='background-color: white;'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
@@ -1103,11 +1103,17 @@
             if(mode==='truck') { sheet.cell("J105").value(trucks[truckIndex].plate); sheet.cell("J106").value(trucks[truckIndex].driver); }
             else { if(extra.plate) sheet.cell("J105").value(extra.plate); if(extra.driver) sheet.cell("J106").value(extra.driver); }
             
-            // YAZDIRMA ALANI ÇÖZÜMÜ: U (21. sütun) sonrasındaki (V, W, X vb.) tüm olası verileri sil
-            // 22. sütun (V) ile 50. sütun (AX) aralığını ve 1 ile 110. satır aralığını tamamen temizler
-            for (let r = 1; r <= 110; r++) {
-                for (let c = 22; c <= 50; c++) {
-                    sheet.row(r).cell(c).value(null);
+            // YAZDIRMA ALANI ÇÖZÜMÜ: U sütunundan (21) sonraki (V ile BR arası) 
+            // tüm hücrelerin verilerini, her türlü kenarlığını ve arka plan renklerini tamamen sıfırla.
+            for (let r = 1; r <= 120; r++) {
+                for (let c = 22; c <= 70; c++) {
+                    const cell = sheet.cell(r, c);
+                    cell.value(null); // İçeriği sil
+                    cell.style("leftBorder", undefined); // Sol kenarlığı sil
+                    cell.style("rightBorder", undefined); // Sağ kenarlığı sil
+                    cell.style("topBorder", undefined); // Üst kenarlığı sil
+                    cell.style("bottomBorder", undefined); // Alt kenarlığı sil
+                    cell.style("fill", undefined); // Arka plan rengini sil
                 }
             }
 
