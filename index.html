@@ -120,14 +120,28 @@
 
         .btn-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; margin-left: 10px;}
         
+        /* Arama kutusu her zaman görünür */
         #cloud-search-area {
-            padding: 10px; background: white; border-bottom: 1px solid #eee; display: none;
+            padding: 10px; background: white; border-bottom: 1px solid #eee;
         }
         #search-input {
-            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1;
+            width: 100%; padding: 12px 12px 12px 38px; border-radius: 8px; border: 1px solid #cbd5e1;
             font-size: 1rem; background: #f8fafc; outline: none; transition: 0.2s;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 12px center;
         }
-        #search-input:focus { border-color: var(--accent); background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        #search-input:focus { border-color: var(--accent); background-color: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        #search-input::placeholder { color: #94a3b8; }
+
+        /* Sonuç sayacı */
+        #search-result-count {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-align: right;
+            padding: 3px 4px 0 4px;
+            min-height: 18px;
+        }
 
         .cloud-body { flex: 1; overflow-y: auto; padding: 10px; }
         
@@ -140,9 +154,26 @@
         .cloud-text { font-weight: 500; color: #334155; word-break: break-word;}
         
         /* İKON RENKLERİ */
-        .icon-folder { color: #eab308; } /* Sarı Klasör */
-        .icon-file { color: #16a34a; }   /* Yeşil Excel */
+        .icon-folder { color: #eab308; }
+        .icon-file { color: #16a34a; }
         
+        /* Arama vurgusu */
+        .cloud-text mark {
+            background: #fef08a;
+            color: #1e293b;
+            border-radius: 2px;
+            padding: 0 1px;
+        }
+
+        /* Boş sonuç mesajı */
+        .no-results {
+            text-align: center;
+            padding: 30px 20px;
+            color: #94a3b8;
+        }
+        .no-results .no-results-icon { font-size: 2.5rem; margin-bottom: 10px; }
+        .no-results p { font-size: 0.9rem; line-height: 1.5; }
+
         .cloud-loading { text-align: center; padding: 20px; color: #64748b; display: none; }
         .btn-back-cloud { padding: 5px 10px; background: #e2e8f0; border-radius: 5px; cursor: pointer; border: none; font-size: 0.8rem; margin-right: 10px; display: none;}
 
@@ -386,8 +417,10 @@
                 <button class="btn-close" onclick="closeCloudMenu()">×</button>
             </div>
             
+            <!-- Arama kutusu artık her zaman görünür, display:none yok -->
             <div id="cloud-search-area">
-                <input type="text" id="search-input" placeholder="🔍 Ara..." inputmode="text">
+                <input type="text" id="search-input" placeholder="Ara..." inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false">
+                <div id="search-result-count"></div>
             </div>
 
             <div id="cloud-list" class="cloud-body"></div>
@@ -459,6 +492,7 @@
             <span>Bilgileri Düzenle</span>
         </div>
     </div>
+
     <div id="upload-overlay">
         <div class="upload-box">
             <div style="font-size: 3rem; margin-bottom: 10px;">🌲</div>
@@ -552,34 +586,72 @@
         let contextMenuTruckIndex = -1;
         
         // Klasör Gezinti Geçmişi
-        let folderHistory = []; 
+        let folderHistory = [];
+
+        // Arama için güncel öğelerin cache'i
+        let currentCloudItems = [];
 
         window.addEventListener('DOMContentLoaded', () => {
             checkPreviousSession();
             
+            // ---- ARAMA KUTUSU: gerçek zamanlı, vurgulu arama ----
             document.getElementById('search-input').addEventListener('input', function(e) {
-                const searchText = e.target.value.toLowerCase();
-                const items = document.querySelectorAll('.cloud-item');
-                
-                items.forEach(item => {
-                    const text = item.innerText.toLowerCase();
-                    if(text.includes(searchText)) {
-                        item.style.display = 'flex';
-                    } else {
-                        item.style.display = 'none';
-                    }
-                });
+                filterCloudItems(e.target.value);
             });
 
             document.addEventListener('click', () => {
                 document.getElementById('context-menu').style.display = 'none';
             });
 
-            // Checkbox listener
             document.getElementById('export-remaining-check').addEventListener('change', function(e) {
                 document.getElementById('remaining-input-group').style.display = e.target.checked ? 'block' : 'none';
             });
         });
+
+        // ==========================================
+        // ARAMA / FİLTRELEME
+        // ==========================================
+        function filterCloudItems(query) {
+            const container = document.getElementById('cloud-list');
+            const countEl = document.getElementById('search-result-count');
+            const trimmed = query.trim();
+
+            if (!trimmed) {
+                // Arama yoksa tüm öğeleri orijinal haliyle render et
+                renderCloudList(currentCloudItems, '');
+                countEl.textContent = '';
+                return;
+            }
+
+            const lower = trimmed.toLowerCase();
+            const filtered = currentCloudItems.filter(item =>
+                item.name.toLowerCase().includes(lower)
+            );
+
+            renderCloudList(filtered, trimmed);
+
+            if (filtered.length === 0) {
+                countEl.textContent = 'Sonuç bulunamadı';
+            } else {
+                countEl.textContent = `${filtered.length} sonuç`;
+            }
+        }
+
+        // Metindeki arama terimini sarı ile vurgula
+        function highlightText(text, query) {
+            if (!query) return escapeHtml(text);
+            const escaped = escapeHtml(text);
+            const escapedQuery = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            return escaped.replace(new RegExp(`(${escapedQuery})`, 'gi'), '<mark>$1</mark>');
+        }
+
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
 
         // ==========================================
         // CLOUD / DRIVE İŞLEMLERİ
@@ -591,29 +663,37 @@
             }
             document.getElementById('cloud-modal').style.display = 'flex';
             folderHistory = []; 
-            // Başlangıçta ana dizini (null göndererek) çağırıyoruz
             fetchFolderContents(null, "Ana Dizin", false);
         }
 
         function closeCloudMenu() {
             document.getElementById('cloud-modal').style.display = 'none';
             folderHistory = [];
+            currentCloudItems = [];
         }
 
         function showCloudLoading(show) {
             document.getElementById('cloud-loader').style.display = show ? 'block' : 'none';
             document.getElementById('cloud-list').style.display = show ? 'none' : 'block';
+            // Yüklenirken arama kutusunu ve sayacı temizle / kapat
+            if (show) {
+                document.getElementById('search-input').value = '';
+                document.getElementById('search-result-count').textContent = '';
+                document.getElementById('search-input').disabled = true;
+            } else {
+                document.getElementById('search-input').disabled = false;
+                // Yükleme bitti, kutuya odaklan (masaüstünde)
+                // document.getElementById('search-input').focus();
+            }
         }
 
         function handleCloudBack() {
             if (folderHistory.length > 0) {
-                folderHistory.pop(); // Şu anki klasörü çıkar (en sondaki)
+                folderHistory.pop();
                 
                 if (folderHistory.length === 0) {
-                    // Geçmiş boşaldıysa ana dizine dön
                     fetchFolderContents(null, "Ana Dizin", false);
                 } else {
-                    // Bir önceki klasöre dön
                     const prevFolder = folderHistory[folderHistory.length - 1];
                     fetchFolderContents(prevFolder.id, prevFolder.name, false); 
                 }
@@ -622,31 +702,24 @@
             }
         }
 
-        // Tek ve birleşik fonksiyon: Hem klasörleri hem dosyaları getirir
         async function fetchFolderContents(folderId, folderName, pushToHistory = true) {
             showCloudLoading(true);
             
-            // UI Güncellemeleri
             document.getElementById('cloud-title-text').innerText = folderName || "Dosyalar";
-            document.getElementById('search-input').value = '';
             
-            // Ana dizinde (folderId yok veya history boş) geri tuşunu gizle
             if (!folderId || (pushToHistory && folderHistory.length === 0)) {
                 document.getElementById('cloud-back-btn').style.display = 'none';
             } else {
                 document.getElementById('cloud-back-btn').style.display = 'inline-block';
             }
 
-            // Geçmişe ekle
             if (pushToHistory && folderId) {
-                // Eğer zaten son eleman bu ise ekleme (çift tıklama koruması)
                 if(folderHistory.length === 0 || folderHistory[folderHistory.length-1].id !== folderId) {
                     folderHistory.push({id: folderId, name: folderName});
                 }
             }
 
             try {
-                // API isteği: folderId varsa gönder, yoksa null (Apps Script'te Master ID kullanılır)
                 let url = `${SCRIPT_URL}?action=getFolderContents`;
                 if (folderId) {
                     url += `&folderId=${folderId}`;
@@ -659,9 +732,10 @@
                     throw new Error(items.error);
                 }
                 
-                renderCloudList(items);
+                // Cache'e kaydet (filtreleme için)
+                currentCloudItems = items || [];
+                renderCloudList(currentCloudItems, '');
                 
-                // Eğer ana dizine döndüysek ve history boş değilse (geri tuşuyla geldiysek), history'i temizle
                 if (!folderId && !pushToHistory) {
                     folderHistory = [];
                     document.getElementById('cloud-back-btn').style.display = 'none';
@@ -669,40 +743,52 @@
 
             } catch (error) {
                 alert("İçerik alınamadı: " + error.message);
-                // Hata durumunda yükleniyor ekranını kapat
                 showCloudLoading(false);
                 return;
             }
             showCloudLoading(false);
         }
 
-        function renderCloudList(items) {
+        // renderCloudList artık opsiyonel searchQuery alıyor (vurgulama için)
+        function renderCloudList(items, searchQuery = '') {
             const container = document.getElementById('cloud-list');
             container.innerHTML = '';
             
             if(!items || items.length === 0) {
-                container.innerHTML = '<div style="padding:20px; text-align:center; color:#999;">Klasör boş.</div>';
+                if (searchQuery) {
+                    container.innerHTML = `
+                        <div class="no-results">
+                            <div class="no-results-icon">🔍</div>
+                            <p><strong>"${escapeHtml(searchQuery)}"</strong> için sonuç bulunamadı.<br>Farklı bir kelime deneyin.</p>
+                        </div>`;
+                } else {
+                    container.innerHTML = '<div style="padding:20px; text-align:center; color:#999;">Klasör boş.</div>';
+                }
                 return;
             }
 
             // SIRALAMA: Önce Klasörler, Sonra Dosyalar. Kendi içlerinde Alfabetik.
-            items.sort((a, b) => {
+            const sorted = [...items].sort((a, b) => {
                 if (a.type === 'folder' && b.type !== 'folder') return -1;
                 if (a.type !== 'folder' && b.type === 'folder') return 1;
-                return a.name.localeCompare(b.name);
+                return a.name.localeCompare(b.name, 'tr');
             });
 
-            items.forEach(item => {
+            sorted.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'cloud-item';
+                const highlighted = highlightText(item.name, searchQuery);
                 
                 if (item.type === 'folder') {
-                    // KLASÖR GÖRÜNÜMÜ
-                    div.innerHTML = `<span class="cloud-icon icon-folder">📁</span> <span class="cloud-text">${item.name}</span>`;
-                    div.onclick = () => fetchFolderContents(item.id, item.name, true);
+                    div.innerHTML = `<span class="cloud-icon icon-folder">📁</span><span class="cloud-text">${highlighted}</span>`;
+                    div.onclick = () => {
+                        // Klasöre tıklanınca arama kutusunu sıfırla
+                        document.getElementById('search-input').value = '';
+                        document.getElementById('search-result-count').textContent = '';
+                        fetchFolderContents(item.id, item.name, true);
+                    };
                 } else {
-                    // EXCEL DOSYASI GÖRÜNÜMÜ
-                    div.innerHTML = `<span class="cloud-icon icon-file">📊</span> <span class="cloud-text">${item.name}</span>`;
+                    div.innerHTML = `<span class="cloud-icon icon-file">📊</span><span class="cloud-text">${highlighted}</span>`;
                     div.onclick = () => downloadAndProcessDriveFile(item.id, item.name);
                 }
                 container.appendChild(div);
@@ -712,7 +798,8 @@
         async function downloadAndProcessDriveFile(fileId, fileName) {
             showCloudLoading(true);
             document.getElementById('cloud-title-text').innerText = "İndiriliyor...";
-            document.getElementById('cloud-search-area').style.display = 'none';
+            // NOT: Eski kodda burada search area gizleniyordu. Artık gerek yok,
+            // modal zaten kapanacak. Sadece yükleniyor göstergesini açıyoruz.
             
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=getFileContent&fileId=${fileId}`);
@@ -1103,8 +1190,6 @@
             if(mode==='truck') { sheet.cell("J105").value(trucks[truckIndex].plate); sheet.cell("J106").value(trucks[truckIndex].driver); }
             else { if(extra.plate) sheet.cell("J105").value(extra.plate); if(extra.driver) sheet.cell("J106").value(extra.driver); }
             
-            // YAZDIRMA ALANI ÇÖZÜMÜ: U (21. sütun) sonrasındaki sütunları tamamen GİZLE
-            // V sütunundan (22) itibaren yeterli sayıda (örneğin 100'e kadar) sütunu görünmez yapar
             for (let c = 22; c <= 100; c++) {
                 sheet.column(c).hidden(true);
             }
