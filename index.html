@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <title>Tomruk Stok Pro v3.7</title>
+    <title>Tomruk Stok Pro 4.0</title>
 
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' style='background-color: white;'%3E%3Cpath fill='%2315803d' d='M50 10 L10 90 H90 Z' /%3E%3Crect fill='%2378350f' x='40' y='85' width='20' height='15' /%3E%3C/svg%3E">
@@ -120,7 +120,6 @@
 
         .btn-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; margin-left: 10px;}
         
-        /* Arama kutusu her zaman görünür */
         #cloud-search-area {
             padding: 10px; background: white; border-bottom: 1px solid #eee;
         }
@@ -134,7 +133,6 @@
         #search-input:focus { border-color: var(--accent); background-color: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
         #search-input::placeholder { color: #94a3b8; }
 
-        /* Sonuç sayacı */
         #search-result-count {
             font-size: 0.75rem;
             color: #94a3b8;
@@ -153,11 +151,9 @@
         .cloud-icon { font-size: 1.4rem; min-width: 30px; text-align: center; }
         .cloud-text { font-weight: 500; color: #334155; word-break: break-word;}
         
-        /* İKON RENKLERİ */
         .icon-folder { color: #eab308; }
         .icon-file { color: #16a34a; }
         
-        /* Arama vurgusu */
         .cloud-text mark {
             background: #fef08a;
             color: #1e293b;
@@ -165,7 +161,6 @@
             padding: 0 1px;
         }
 
-        /* Boş sonuç mesajı */
         .no-results {
             text-align: center;
             padding: 30px 20px;
@@ -417,7 +412,6 @@
                 <button class="btn-close" onclick="closeCloudMenu()">×</button>
             </div>
             
-            <!-- Arama kutusu artık her zaman görünür, display:none yok -->
             <div id="cloud-search-area">
                 <input type="text" id="search-input" placeholder="Ara..." inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false">
                 <div id="search-result-count"></div>
@@ -497,7 +491,7 @@
         <div class="upload-box">
             <div style="font-size: 3rem; margin-bottom: 10px;">🌲</div>
             <h2 style="color: var(--primary); margin-bottom: 5px;">Tomruk Stok Pro</h2>
-            <div style="font-size:0.8rem; color: var(--accent); font-weight:600; margin-bottom: 10px;">Türk Mühendisliğinin Dijital Gücü v3.7</div>
+            <div style="font-size:0.8rem; color: var(--accent); font-weight:600; margin-bottom: 10px;">Türk Mühendisliğinin Dijital Gücü v4.0</div>
             
             <p style="color: #64748b; font-size: 0.9rem; line-height: 1.5; margin-bottom: 20px;">
                 <strong>Özkan KANBUR</strong><br>
@@ -594,7 +588,6 @@
         window.addEventListener('DOMContentLoaded', () => {
             checkPreviousSession();
             
-            // ---- ARAMA KUTUSU: gerçek zamanlı, vurgulu arama ----
             document.getElementById('search-input').addEventListener('input', function(e) {
                 filterCloudItems(e.target.value);
             });
@@ -617,7 +610,6 @@
             const trimmed = query.trim();
 
             if (!trimmed) {
-                // Arama yoksa tüm öğeleri orijinal haliyle render et
                 renderCloudList(currentCloudItems, '');
                 countEl.textContent = '';
                 return;
@@ -637,7 +629,6 @@
             }
         }
 
-        // Metindeki arama terimini sarı ile vurgula
         function highlightText(text, query) {
             if (!query) return escapeHtml(text);
             const escaped = escapeHtml(text);
@@ -675,15 +666,12 @@
         function showCloudLoading(show) {
             document.getElementById('cloud-loader').style.display = show ? 'block' : 'none';
             document.getElementById('cloud-list').style.display = show ? 'none' : 'block';
-            // Yüklenirken arama kutusunu ve sayacı temizle / kapat
             if (show) {
                 document.getElementById('search-input').value = '';
                 document.getElementById('search-result-count').textContent = '';
                 document.getElementById('search-input').disabled = true;
             } else {
                 document.getElementById('search-input').disabled = false;
-                // Yükleme bitti, kutuya odaklan (masaüstünde)
-                // document.getElementById('search-input').focus();
             }
         }
 
@@ -732,7 +720,6 @@
                     throw new Error(items.error);
                 }
                 
-                // Cache'e kaydet (filtreleme için)
                 currentCloudItems = items || [];
                 renderCloudList(currentCloudItems, '');
                 
@@ -749,7 +736,6 @@
             showCloudLoading(false);
         }
 
-        // renderCloudList artık opsiyonel searchQuery alıyor (vurgulama için)
         function renderCloudList(items, searchQuery = '') {
             const container = document.getElementById('cloud-list');
             container.innerHTML = '';
@@ -767,7 +753,6 @@
                 return;
             }
 
-            // SIRALAMA: Önce Klasörler, Sonra Dosyalar. Kendi içlerinde Alfabetik.
             const sorted = [...items].sort((a, b) => {
                 if (a.type === 'folder' && b.type !== 'folder') return -1;
                 if (a.type !== 'folder' && b.type === 'folder') return 1;
@@ -782,7 +767,6 @@
                 if (item.type === 'folder') {
                     div.innerHTML = `<span class="cloud-icon icon-folder">📁</span><span class="cloud-text">${highlighted}</span>`;
                     div.onclick = () => {
-                        // Klasöre tıklanınca arama kutusunu sıfırla
                         document.getElementById('search-input').value = '';
                         document.getElementById('search-result-count').textContent = '';
                         fetchFolderContents(item.id, item.name, true);
@@ -798,8 +782,6 @@
         async function downloadAndProcessDriveFile(fileId, fileName) {
             showCloudLoading(true);
             document.getElementById('cloud-title-text').innerText = "İndiriliyor...";
-            // NOT: Eski kodda burada search area gizleniyordu. Artık gerek yok,
-            // modal zaten kapanacak. Sadece yükleniyor göstergesini açıyoruz.
             
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=getFileContent&fileId=${fileId}`);
@@ -872,7 +854,7 @@
             document.getElementById('app-header').style.display = 'flex';
             document.getElementById('top-area').style.display = 'flex';
             document.getElementById('footer').style.display = 'flex';
-            document.getElementById('app-title').innerText = `🌲 Tomruk Stok Pro - İstif: ${istifNo}`;
+            document.getElementById('app-title').innerText = `🌲 Tomruk Stok Pro v4.0 - İstif: ${istifNo}`;
             renderTabs();
             renderTable();
             updateDashboard();
@@ -1142,21 +1124,76 @@
             document.getElementById('loading-text').innerText = "Rapor Hazırlanıyor...";
             setTimeout(async () => {
                 try {
-                    const wb = await XlsxPopulate.fromDataAsync(rawFileBuffer);
-                    const sheet = wb.sheet(0);
-                    trucks.forEach((t, i) => processSheet(wb.cloneSheet(sheet, (t.plate||t.tempName).substring(0,31).replace(/[:\/\?\*\[\]]/g,'_')), 'truck', i));
-                    const remSheet = wb.cloneSheet(sheet, (rPlate||"Kalan_Stok").substring(0,31).replace(/[:\/\?\*\[\]]/g,'_'));
-                    processSheet(remSheet, 'remaining', null, {plate:rPlate, driver:rDriver});
-                    sheet.name("Sablon").hidden(true);
+                    let cleanBuffer = rawFileBuffer;
+                    try {
+                        const tempWb = XLSX.read(new Uint8Array(rawFileBuffer), { type: 'array', cellStyles: true, cellFormulas: true });
+                        cleanBuffer = XLSX.write(tempWb, { type: 'array', bookType: 'xlsx' });
+                    } catch(err) {
+                        console.warn("Ön temizleme atlandı:", err);
+                    }
+
+                    const wb = await XlsxPopulate.fromDataAsync(cleanBuffer);
+                    const originalSheet = wb.sheet(0);
+                    
+                    trucks.forEach((t, i) => {
+                        const sheetName = (t.plate || t.tempName).substring(0, 31).replace(/[:\/\?\*\[\]]/g, '_');
+                        const newSheet = wb.cloneSheet(originalSheet, sheetName);
+                        processSheet(newSheet, 'truck', i);
+                    });
+                    
+                    const remSheetName = (rPlate || "Kalan_Stok").substring(0, 31).replace(/[:\/\?\*\[\]]/g, '_');
+                    const remSheet = wb.cloneSheet(originalSheet, remSheetName);
+                    processSheet(remSheet, 'remaining', null, {plate: rPlate, driver: rDriver});
+                    
+                    // Şablon sayfayı gizle
+                    originalSheet.hidden(true);
+                    
                     const blob = await wb.outputAsync();
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement("a");
-                    a.href = url; a.download = `${istifNo}.xlsx`;
-                    document.body.appendChild(a); a.click();
+                    a.href = url; 
+                    a.download = `${istifNo}.xlsx`;
+                    document.body.appendChild(a); 
+                    a.click();
                     document.body.removeChild(a);
                     document.getElementById('loading-overlay').style.display = 'none';
-                } catch (e) { alert("Hata: " + e.message); document.getElementById('loading-overlay').style.display = 'none'; }
+                } catch (e) { 
+                    console.error(e);
+                    alert("Hata: " + e.message); 
+                    document.getElementById('loading-overlay').style.display = 'none'; 
+                }
             }, 500);
+        }
+
+        // ==========================================
+        // KENARLIK VE ÇERÇEVE UYGULAMA FONKSİYONU
+        // ==========================================
+        function applyBoxBorders(sheet, startRow, endRow, startCol, endCol) {
+            for (let r = startRow; r <= endRow; r++) {
+                for (let c = startCol; c <= endCol; c++) {
+                    const cell = sheet.row(r).cell(c);
+
+                    // İç tüm hücreler için İNCE kenarlıklar
+                    const borderObj = {
+                        top: { style: "thin" },
+                        bottom: { style: "thin" },
+                        left: { style: "thin" },
+                        right: { style: "thin" }
+                    };
+
+                    // En Dış Sınır Hücrelerine KALIN (medium) Çerçeve Kenarlığı
+                    if (r === startRow) borderObj.top = { style: "medium" };
+                    if (r === endRow) borderObj.bottom = { style: "medium" };
+                    if (c === startCol) borderObj.left = { style: "medium" };
+                    if (c === endCol) borderObj.right = { style: "medium" };
+
+                    cell.style({
+                        border: borderObj,
+                        horizontalAlignment: "center",
+                        verticalAlignment: "center"
+                    });
+                }
+            }
         }
 
         function processSheet(sheet, mode, truckIndex, extra={}) {
@@ -1166,59 +1203,163 @@
             const lenMap = {};
             lens.forEach((l,i) => lenMap[l] = (i<7) ? cols[i] : 15+((i-6)*2));
             
+            // 1. Temizlik İşlemleri
             cols.forEach(c => sheet.row(7).cell(c).value(null));
-            for(let r=9; r<=97; r++) for(let c=3; c<=17; c+=2) sheet.row(r).cell(c).value(null);
-            
-            lens.forEach(l => { if(lenMap[l]) sheet.row(7).cell(lenMap[l]).value(l); });
-            
-            inventory.forEach(item => {
-                let q = 0;
-                if(mode==='truck') q = trucks[truckIndex].shipments[item.id]||0;
-                else {
-                    let s = 0; trucks.forEach(t => s+=(t.shipments[item.id]||0));
-                    q = item.totalQty - s;
+            for(let r=9; r<=97; r++) {
+                for(let c=3; c<=17; c+=2) {
+                    sheet.row(r).cell(c).value(null);
                 }
-                const r = parseInt(item.qtyAddr.match(/\d+/)[0]);
-                const c = lenMap[item.length];
-                if(c && q>0) { sheet.row(r).cell(c).value(q).style("numberFormat","0"); usedRows.add(r); }
+            }
+            
+            // 2. Boy Değerlerini Yerleştir
+            lens.forEach(l => { 
+                if(lenMap[l]) {
+                    sheet.row(7).cell(lenMap[l]).value(l);
+                }
             });
             
-            for(let r=9; r<=97; r++) {
-                if(!usedRows.has(r)) sheet.row(r).hidden(true);
-                else { sheet.row(r).hidden(false); for(let c=3; c<=17; c+=2) if(sheet.row(r).cell(c).value()==null) sheet.row(r).cell(c).style("numberFormat","0"); }
-            }
-            if(mode==='truck') { sheet.cell("J105").value(trucks[truckIndex].plate); sheet.cell("J106").value(trucks[truckIndex].driver); }
-            else { if(extra.plate) sheet.cell("J105").value(extra.plate); if(extra.driver) sheet.cell("J106").value(extra.driver); }
+            // 3. Adet Değerlerini Yerleştir
+            inventory.forEach(item => {
+                let q = 0;
+                if(mode==='truck') {
+                    q = trucks[truckIndex].shipments[item.id]||0;
+                } else {
+                    let s = 0; 
+                    trucks.forEach(t => s+=(t.shipments[item.id]||0));
+                    q = item.totalQty - s;
+                }
+                const match = item.qtyAddr.match(/\d+/);
+                if(match) {
+                    const r = parseInt(match[0]);
+                    const c = lenMap[item.length];
+                    if(c && q>0) { 
+                        const cell = sheet.row(r).cell(c);
+                        cell.value(q);
+                        cell.style("numberFormat", "0");
+                        usedRows.add(r); 
+                    }
+                }
+            });
             
-            for (let c = 22; c <= 100; c++) {
-                sheet.column(c).hidden(true);
+            // 4. Satır Gizleme ve Formatlama
+            for(let r=9; r<=97; r++) {
+                if(!usedRows.has(r)) {
+                    sheet.row(r).hidden(true);
+                } else { 
+                    sheet.row(r).hidden(false); 
+                    for(let c=3; c<=17; c+=2) {
+                        if (sheet.row(r).cell(c).value() == null) {
+                            sheet.row(r).cell(c).style("numberFormat", "0");
+                        }
+                    }
+                }
             }
 
-            sheet.workbook().definedName("Print_Area", `'${sheet.name()}'!$B$1:$T$107`);
+            // 5. Plaka ve Şoför Bilgisi Doldurma
+            const cellPlate = sheet.cell("J105");
+            const cellDriver = sheet.cell("J106");
+
+            if(mode==='truck') { 
+                cellPlate.value(trucks[truckIndex].plate || ""); 
+                cellDriver.value(trucks[truckIndex].driver || ""); 
+            } else { 
+                if(extra.plate) cellPlate.value(extra.plate); 
+                if(extra.driver) cellDriver.value(extra.driver); 
+            }
+
+            // X2:Y6 alanına da araç bilgisi yazma
+            if(mode==='truck') {
+                sheet.cell("X2").value(trucks[truckIndex].plate || "");
+                sheet.cell("X3").value(trucks[truckIndex].driver || "");
+            } else if(extra.plate || extra.driver) {
+                sheet.cell("X2").value(extra.plate || "");
+                sheet.cell("X3").value(extra.driver || "");
+            }
+
+            // 6. GÜNCELLENMİŞ ÇERÇEVE KURAL UYGULAMASI (B6:T98, B99:D103, X2:Y6)
+            // A. B6'dan T98'e (Sütun 2'den Sütun 20'ye)
+            applyBoxBorders(sheet, 6, 98, 2, 20);
+
+            // B. B99'dan D103'e (Sütun 2'den Sütun 4'e)
+            applyBoxBorders(sheet, 99, 103, 2, 4);
+
+            // C. X2'den Y6'ya (Sütun 24'ten Sütun 25'e)
+            applyBoxBorders(sheet, 2, 6, 24, 25);
+            
+            // 7. ÖZEL BİÇİMLENDİRME VE METİN AYARLARI (Yazı Tipi, Kalınlık, Büyüklük, Hizalama)
+            
+            // X2:Y3 Birleştirilmiş Hücre -> "GENEL TOPLAM", Kalın
+            sheet.cell("X2").value("GENEL TOPLAM");
+            sheet.cell("X2").style({
+                bold: true,
+                horizontalAlignment: "center",
+                verticalAlignment: "center"
+            });
+
+            // X4, Y4, X5, Y5, B99 Kalın Punto
+            ["X4", "Y4", "X5", "Y5", "B99"].forEach(addr => {
+                sheet.cell(addr).style("bold", true);
+            });
+
+            // B6'dan B98'e Kadar Kalın Punto (Çap Sütunları)
+            for(let r=6; r<=98; r++) {
+                sheet.row(r).cell(2).style("bold", true);
+            }
+
+            // C6:R6 Birleştirilmiş Hücresi Kalın Punto
+            sheet.cell("C6").style("bold", true);
+
+            // B6:B8 Birleştirilmiş Hücresi Kalın Punto
+            sheet.cell("B6").style("bold", true);
+
+            // B99'dan C103'e Kadar Kalın Punto (Sütun B=2, Sütun C=3)
+            for(let r=99; r<=103; r++) {
+                sheet.row(r).cell(2).style("bold", true);
+                sheet.row(r).cell(3).style("bold", true);
+            }
+
+            // F1:N3 Birleştirilmiş Hücre: Boyut 20, Kalın, Hücre İçi Ortalanmış, Metni Kaydır (Wrap Text)
+            sheet.cell("F1").style({
+                fontSize: 20,
+                bold: true,
+                horizontalAlignment: "center",
+                verticalAlignment: "center",
+                wrapText: true
+            });
+
+            // Kullanılmayan uzak sütunları gizle
+            for (let c = 26; c <= 100; c++) {
+                sheet.column(c).hidden(true);
+            }
         }
 
         function saveSession() {
             if(!rawFileBuffer) return;
-            localStorage.setItem('tsp_v37_file', arrayBufferToBase64(rawFileBuffer));
-            localStorage.setItem('tsp_v37_istif', istifNo);
-            localStorage.setItem('tsp_v37_data', JSON.stringify({inventory, trucks, activeTruckIndex}));
+            localStorage.setItem('tsp_v40_file', arrayBufferToBase64(rawFileBuffer));
+            localStorage.setItem('tsp_v40_istif', istifNo);
+            localStorage.setItem('tsp_v40_data', JSON.stringify({inventory, trucks, activeTruckIndex}));
         }
 
         function restoreSession() {
-            const d = localStorage.getItem('tsp_v37_data');
-            const f = localStorage.getItem('tsp_v37_file');
+            const d = localStorage.getItem('tsp_v40_data') || localStorage.getItem('tsp_v37_data');
+            const f = localStorage.getItem('tsp_v40_file') || localStorage.getItem('tsp_v37_file');
             if(!d || !f) return;
             rawFileBuffer = base64ToArrayBuffer(f);
             const p = JSON.parse(d);
             inventory = p.inventory; trucks = p.trucks; activeTruckIndex = p.activeTruckIndex || 0;
-            istifNo = localStorage.getItem('tsp_v37_istif') || "Istif_Auto";
+            istifNo = localStorage.getItem('tsp_v40_istif') || localStorage.getItem('tsp_v37_istif') || "Istif_Auto";
             initApp();
         }
 
-        function checkPreviousSession() { if(localStorage.getItem('tsp_v37_data')) document.getElementById('btn-restore').style.display = 'flex'; }
+        function checkPreviousSession() { 
+            if(localStorage.getItem('tsp_v40_data') || localStorage.getItem('tsp_v37_data')) {
+                document.getElementById('btn-restore').style.display = 'flex'; 
+            }
+        }
         
         function resetApp() {
             if(!confirm("Her şey silinecek?")) return;
+            localStorage.removeItem('tsp_v40_file'); localStorage.removeItem('tsp_v40_data'); localStorage.removeItem('tsp_v40_istif');
             localStorage.removeItem('tsp_v37_file'); localStorage.removeItem('tsp_v37_data'); localStorage.removeItem('tsp_v37_istif');
             location.reload();
         }
