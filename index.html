@@ -1327,8 +1327,8 @@
                 wrapText: true
             });
 
-            // Kullanılmayan uzak sütunları gizle
-            for (let c = 26; c <= 100; c++) {
+            // X (24), Y (25) sütunları dahil tüm uzak sütunları gizle
+            for (let c = 24; c <= 100; c++) {
                 sheet.column(c).hidden(true);
             }
         }
